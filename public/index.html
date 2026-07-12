@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TripMoney · 여행 총무 AI</title>
+<meta name="description" content="영수증과 여행 일정을 보내면 환율, 일정 귀속, N빵 정산, 카톡 공유문까지 정리해주는 한국형 여행 총무 AI 베타.">
+<meta property="og:title" content="TripMoney · 여행 총무 AI">
+<meta property="og:description" content="영수증만 보내면 여행비 정산문까지. 해외여행 총무를 위한 유료 베타를 모집합니다.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --ink:#172133;
+  --nav:#233049;
+  --paper:#F5EFE3;
+  --panel:#FFFDF7;
+  --line:#DDD0BA;
+  --mut:#5E574B;
+  --green:#1F6B4A;
+  --mint:#C8E8D5;
+  --amber:#B86718;
+  --rose:#B14B3F;
+  --blue:#305D88;
+  --shadow:0 18px 54px -34px rgba(23,33,51,.55);
+  --disp:'Fraunces','Pretendard Variable','Pretendard',serif;
+  --sans:'Space Grotesk','Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button,input,select,textarea{font:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.num{font-variant-numeric:tabular-nums}
+.shell{max-width:1160px;margin:0 auto;padding:0 22px}
+.top{position:sticky;top:0;z-index:10;background:rgba(245,239,227,.94);border-bottom:1px solid var(--line)}
+.nav{height:64px;display:flex;align-items:center;gap:18px}
+.brand{font-weight:700;color:var(--nav);font-size:18px}
+.navlinks{margin-left:auto;display:flex;align-items:center;gap:18px;color:var(--mut);font-size:14px}
+.navlinks a:hover{color:var(--ink)}
+.navcta{background:var(--ink);color:var(--panel);padding:9px 14px;border-radius:999px;font-weight:700}
+.hero{padding:74px 0 44px}
+.heroGrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:48px;align-items:center}
+.kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:7px 12px;background:var(--panel);color:var(--green);font-weight:700;font-size:13px}
+h1{font-family:var(--disp);font-size:clamp(44px,8vw,82px);line-height:.98;margin-top:22px;max-width:760px}
+.lead{font-size:clamp(17px,2vw,21px);color:var(--mut);max-width:650px;margin-top:22px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--ink);border-radius:12px;min-height:48px;padding:0 18px;font-weight:700}
+.btn{cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--panel)}
+.btn.secondary{background:transparent;color:var(--ink)}
+.proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:34px;max-width:680px}
+.proof div{border-top:1px solid var(--line);padding-top:11px}
+.proof strong{display:block;font-size:22px;color:var(--ink)}
+.proof span{display:block;font-size:13px;color:var(--mut);margin-top:2px}
+.visual{position:relative;min-height:540px}
+.phone{position:absolute;right:0;top:20px;width:min(390px,90%);background:var(--ink);color:var(--panel);border-radius:30px;padding:18px;box-shadow:var(--shadow)}
+.screen{background:#FDF7EA;color:var(--ink);border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+.screenHead{background:var(--nav);color:var(--panel);padding:16px 18px;display:flex;align-items:center;justify-content:space-between}
+.screenHead b{font-size:14px}.screenHead span{font-size:11px;color:#D3DDCA}
+.chat{padding:18px;display:grid;gap:12px}
+.bubble{max-width:86%;padding:11px 13px;border-radius:15px;font-size:13px}
+.bubble.user{justify-self:end;background:var(--mint)}
+.bubble.ai{background:#ECE2D0}
+.pass{margin-top:4px;background:var(--nav);color:var(--panel);border-radius:16px;display:grid;grid-template-columns:1fr 118px;overflow:hidden}
+.passMain{padding:15px}
+.passLabel{font-size:10px;color:#C8D5C1;text-transform:uppercase}
+.route{font-weight:700;margin-top:4px}
+.passStub{border-left:2px dashed rgba(255,255,255,.35);display:grid;place-content:center;text-align:center;gap:7px;padding:12px}
+.fare{font-weight:700;font-size:18px}
+.receipt{position:absolute;left:0;bottom:4px;width:220px;border:10px solid var(--panel);box-shadow:var(--shadow);transform:rotate(-5deg)}
+.stamp{position:absolute;left:142px;top:46px;background:var(--amber);color:#fff;padding:12px 15px;border-radius:999px;font-weight:700;box-shadow:var(--shadow)}
+.band{padding:58px 0;border-top:1px solid var(--line)}
+.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:24px}
+h2{font-family:var(--disp);font-size:clamp(30px,4.8vw,52px);line-height:1.05}
+.sectionHead p{color:var(--mut);max-width:430px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;min-height:190px}
+.step small{display:inline-flex;color:var(--amber);font-weight:700;margin-bottom:22px}
+.step h3{font-size:19px;margin-bottom:8px}.step p{color:var(--mut);font-size:14px}
+.offer{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:stretch}
+.offerCopy{background:var(--nav);color:var(--panel);border-radius:20px;padding:34px}
+.offerCopy h2{max-width:650px}
+.offerCopy p{color:#DFE7D7;margin-top:14px;max-width:620px}
+.price{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:var(--shadow)}
+.price .label{font-weight:700;color:var(--green)}
+.price .amount{font-family:var(--disp);font-size:46px;line-height:1;margin-top:12px}
+.price ul{margin:20px 0 0 18px;color:var(--mut)}
+.price li{margin:7px 0}
+.price .btn{width:100%;margin-top:22px}
+.leadForm{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+.leadForm h3{font-size:22px;margin-bottom:6px}
+.leadForm p{color:var(--mut);font-size:14px;margin-bottom:14px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:grid;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:700;color:var(--mut)}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#fffaf0;color:var(--ink);padding:11px 12px;font-size:14px}
+.field textarea{min-height:96px;resize:vertical;line-height:1.5}
+.hiddenField{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.formMsg{min-height:22px;margin-top:10px;font-size:13px;color:var(--green);font-weight:700}
+.formMsg.err{color:var(--rose)}
+.who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.persona{border:1px solid var(--line);border-radius:16px;padding:20px;background:transparent}
+.persona h3{font-size:18px}.persona p{color:var(--mut);font-size:14px;margin-top:8px}
+.final{padding:68px 0 82px;text-align:center}
+.final h2{margin:0 auto;max-width:780px}
+.final p{margin:16px auto 0;max-width:600px;color:var(--mut)}
+.foot{border-top:1px solid var(--line);padding:24px 0;color:var(--mut);font-size:13px}
+@media(max-width:900px){
+  .heroGrid,.offer{grid-template-columns:1fr}
+  .visual{min-height:500px}
+  .phone{right:50%;transform:translateX(50%)}
+  .receipt{left:calc(50% - 230px)}
+  .steps,.who{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .navlinks a:not(.navcta){display:none}
+  .hero{padding-top:48px}
+  .proof,.steps,.who{grid-template-columns:1fr}
+  .formGrid{grid-template-columns:1fr}
+  .visual{min-height:560px}
+  .receipt{position:relative;left:auto;bottom:auto;width:190px;margin:20px auto 0}
+  .stamp{left:24px;top:402px}
+  .pass{grid-template-columns:1fr}
+  .passStub{border-left:0;border-top:2px dashed rgba(255,255,255,.35)}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <nav class="shell nav" aria-label="주요 메뉴">
+    <a class="brand" href="/">TripMoney</a>
+    <div class="navlinks">
+      <a href="#flow">흐름</a>
+      <a href="#offer">베타 가격</a>
+      <a href="/prototype">프로토타입</a>
+      <a class="navcta" href="#apply">베타 신청</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="shell heroGrid">
+      <div>
+        <span class="kicker">유료 베타 모집 · 여행 총무 AI</span>
+        <h1>영수증만 보내면 여행비 정산문까지.</h1>
+        <p class="lead">TripMoney는 해외여행 총무가 카톡, 영수증, 환율, 계좌, N빵 계산 사이에서 헤매지 않도록 정리해주는 한국형 AI 정산 도우미입니다.</p>
+        <div class="actions">
+          <a class="btn primary" href="#apply">이번 여행 맡겨보기</a>
+          <a class="btn secondary" href="/prototype">프로토타입 보기</a>
+        </div>
+        <div class="proof" aria-label="베타 핵심 지표">
+          <div><strong>3-8명</strong><span>첫 타깃 여행 인원</span></div>
+          <div><strong>₩4,900~</strong><span>개인 여행 베타 가격</span></div>
+          <div><strong>카톡 공유</strong><span>마지막 정산문까지</span></div>
+        </div>
+      </div>
+
+      <div class="visual" aria-label="TripMoney 사용 예시">
+        <div class="phone">
+          <div class="screen">
+            <div class="screenHead"><b>방콕 3박 정산</b><span>LIVE</span></div>
+            <div class="chat">
+              <div class="bubble user">오아시스 스파 영수증 등록해줘. 민수가 카드로 냈어.</div>
+              <div class="bubble ai">2,000 THB를 77,000 KRW로 환산했고, 스파 일정에 붙였어요.</div>
+              <div class="pass">
+                <div class="passMain">
+                  <div class="passLabel">settlement pass</div>
+                  <div class="route">현우 → 민수</div>
+                </div>
+                <div class="passStub">
+                  <div class="fare num">₩37,217</div>
+                  <small>토스 송금</small>
+                </div>
+              </div>
+              <div class="bubble ai">카톡에 붙여넣을 정산문도 준비됐습니다.</div>
+            </div>
+          </div>
+        </div>
+        <img class="receipt" src="/test-receipt.png" alt="TripMoney OCR 테스트 영수증 예시">
+        <div class="stamp">총무 모드</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="flow">
+    <div class="shell">
+      <div class="sectionHead">
+        <h2>총무가 실제로 하는 일을 한 흐름으로.</h2>
+        <p>앱을 하나 더 배우게 하지 않습니다. 여행 중 생기는 말, 영수증, 일정, 송금 문구를 하나의 정산 기록으로 묶습니다.</p>
+      </div>
+      <div class="steps">
+        <article class="step"><small>01</small><h3>여행방 세팅</h3><p>멤버, 역할, 계좌, 기준 통화를 등록하고 총무만 편집 권한을 가집니다.</p></article>
+        <article class="step"><small>02</small><h3>영수증 등록</h3><p>영수증 이미지나 금액을 보내면 OCR, 환율, 결제수단을 함께 기록합니다.</p></article>
+        <article class="step"><small>03</small><h3>일정 자동 귀속</h3><p>지출 시각으로 진행 중 일정을 찾아 비용을 자동으로 붙입니다.</p></article>
+        <article class="step"><small>04</small><h3>정산문 생성</h3><p>N빵, 일부 참여, 각자 부담을 계산하고 카톡 공유문과 송금 링크를 만듭니다.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="offer">
+    <div class="shell offer">
+      <div class="offerCopy">
+        <h2>첫 유료 베타는 자동화보다 결과를 보장합니다.</h2>
+        <p>초기에는 완전 셀프서비스보다 컨시어지 방식으로 운영합니다. 여행 멤버, 일정, 영수증을 보내주시면 TripMoney가 정산판과 최종 공유문을 만들어드립니다.</p>
+      </div>
+      <aside class="price" aria-label="베타 가격">
+        <div class="label">Concierge Beta</div>
+        <div class="amount num">₩4,900~</div>
+        <ul>
+          <li>개인 해외여행 1회 정산</li>
+          <li>멤버별 결제/부담/송금 결과</li>
+          <li>카톡 공유용 최종 정산문</li>
+          <li>단체/워크숍은 별도 견적</li>
+        </ul>
+        <a class="btn primary" href="#apply">베타 문의하기</a>
+      </aside>
+    </div>
+  </section>
+
+  <section class="band" id="apply">
+    <div class="shell offer">
+      <div class="offerCopy">
+        <h2>신청이 들어오는 순간부터 수익화를 검증합니다.</h2>
+        <p>여행 인원, 일정, 가격 관심도를 남겨주시면 베타 운영자가 연락해 정산 가능 여부와 진행 방식을 안내합니다. 입력값은 초기 가격 실험과 고객군 판단에 사용합니다.</p>
+      </div>
+      <form class="leadForm" id="betaForm">
+        <h3>유료 베타 신청</h3>
+        <p>카톡 ID, 이메일, 전화번호 중 편한 연락처를 남겨주세요.</p>
+        <input class="hiddenField" name="website" tabindex="-1" autocomplete="off">
+        <div class="formGrid">
+          <div class="field"><label for="lead_name">이름</label><input id="lead_name" name="name" placeholder="예: 김민수"></div>
+          <div class="field"><label for="lead_contact">연락처</label><input id="lead_contact" name="contact" required placeholder="카톡 ID / 이메일 / 전화"></div>
+          <div class="field"><label for="lead_trip">여행명</label><input id="lead_trip" name="trip_name" placeholder="예: 방콕 3박 4일"></div>
+          <div class="field"><label for="lead_destination">여행지</label><input id="lead_destination" name="destination" placeholder="예: 태국 방콕"></div>
+          <div class="field"><label for="lead_size">인원</label><input id="lead_size" name="group_size" type="number" min="1" placeholder="4"></div>
+          <div class="field"><label for="lead_date">출발/정산 시점</label><input id="lead_date" name="trip_date" placeholder="예: 7월 말"></div>
+          <div class="field"><label for="lead_segment">유형</label><select id="lead_segment" name="segment"><option>친구 해외여행</option><option>동아리/워크숍</option><option>소규모 여행 호스트</option><option>기타</option></select></div>
+          <div class="field"><label for="lead_price">관심 가격</label><select id="lead_price" name="price_interest"><option>₩4,900 개인 여행</option><option>₩9,900 개인 여행</option><option>₩29,000+ 단체/운영자</option><option>가격 상담 필요</option></select></div>
+          <div class="field full"><label for="lead_pain">정산에서 가장 귀찮은 점</label><textarea id="lead_pain" name="pain" placeholder="예: 현지 통화, 카드/현금 섞임, 일부만 참여한 식비가 많아요."></textarea></div>
+        </div>
+        <button class="btn primary" type="submit" style="width:100%;margin-top:14px">신청 보내기</button>
+        <div class="formMsg" id="betaMsg" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="shell">
+      <div class="sectionHead">
+        <h2>처음부터 모두를 노리지 않습니다.</h2>
+        <p>반복적으로 정산 스트레스를 겪는 총무에게 먼저 팔고, 실제 여행 데이터를 보며 제품을 날카롭게 만듭니다.</p>
+      </div>
+      <div class="who">
+        <article class="persona"><h3>친구 해외여행 총무</h3><p>현지통화, 카드/현금, 일부 참여 비용이 섞여 마지막 날 정산이 무거운 사람.</p></article>
+        <article class="persona"><h3>동아리·워크숍 운영자</h3><p>반복되는 단체 이동과 식비 정산을 깔끔하게 끝내야 하는 사람.</p></article>
+        <article class="persona"><h3>소규모 여행 호스트</h3><p>참여자에게 투명한 비용 내역과 신뢰감 있는 정산 결과를 보여줘야 하는 사람.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="shell">
+      <h2>다음 여행에서 총무를 혼자 두지 마세요.</h2>
+      <p>베타 기간에는 실제 여행 10건을 직접 처리하며 가격, OCR 정확도, 공유 흐름을 검증합니다.</p>
+      <div class="actions" style="justify-content:center">
+        <a class="btn primary" href="#apply">베타 신청</a>
+        <a class="btn secondary" href="/prototype">대시보드 보기</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="shell">TripMoney · MCP 기반 여행 정산 서버 · <a href="/health">health</a></div>
+</footer>
+<script>
+const betaForm=document.getElementById('betaForm');
+const betaMsg=document.getElementById('betaMsg');
+betaForm?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  betaMsg.className='formMsg';
+  betaMsg.textContent='신청을 저장하는 중입니다…';
+  const form=new FormData(betaForm);
+  const body=Object.fromEntries(form.entries());
+  body.source='landing';
+  try{
+    const res=await fetch('/api/beta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(!res.ok||!data.ok)throw new Error(data.error||'신청 저장 실패');
+    betaForm.reset();
+    betaMsg.textContent=`신청이 접수됐습니다. 접수번호: ${data.id}`;
+  }catch(err){
+    betaMsg.className='formMsg err';
+    betaMsg.textContent=err?.message||'신청 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  }
+});
+</script>
+</body>
+</html>

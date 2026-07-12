@@ -1,0 +1,30 @@
+{
+  "name": "tripmoney-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TripMoney MCP 서버 — 여행 일정/비용 공유 및 정산",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/logic.test.ts",
+    "smoke:mcp": "tsx test/mcp.smoke.ts",
+    "dev": "npm run prototype",
+    "start": "tsx scripts/kakao-server.ts",
+    "start:kakao": "tsx scripts/kakao-server.ts",
+    "vercel:dev": "npx --yes vercel dev",
+    "prototype": "TRIPMONEY_PROTOTYPE_MODE=mock tsx scripts/prototype-server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "docx": "^9.7.1",
+    "pg": "^8.13.1",
+    "pptxgenjs": "^4.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

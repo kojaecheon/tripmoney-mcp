@@ -1,0 +1,13 @@
+node_modules/
+.vercel/
+.env
+.env.local
+*.log
+dist/
+.vercel
+.DS_Store
+.bkit/
+.claude/
+docs/.DS_Store
+docs/.~lock.*
+docs/*.tmp

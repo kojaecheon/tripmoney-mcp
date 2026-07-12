@@ -1,0 +1,733 @@
+{
+  "tools": [
+    {
+      "name": "createTrip",
+      "title": "여행방 생성",
+      "description": "[트립머니] 같이 여행 가는 사람들을 위한 공유 공간(여행방)을 만든다. 기준 통화, 기간, 초기 멤버를 함께 등록할 수 있다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "여행방 이름"
+          },
+          "base_currency": {
+            "type": "string",
+            "default": "KRW",
+            "description": "정산 기준 통화 (기본 KRW)"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "시작일 YYYY-MM-DD"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "종료일 YYYY-MM-DD"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "editor",
+                    "viewer"
+                  ],
+                  "default": "editor"
+                },
+                "bank_name": {
+                  "type": "string",
+                  "description": "송금 딥링크용 은행명"
+                },
+                "account_no": {
+                  "type": "string",
+                  "description": "송금 딥링크용 계좌번호"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "description": "초기 멤버 목록 (role: owner/editor 는 수정 가능, viewer 는 조회만)"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "여행방 생성",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "addMember",
+      "title": "멤버 추가",
+      "description": "[트립머니] 여행방에 동행 멤버를 추가한다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "default": "editor"
+          },
+          "bank_name": {
+            "type": "string",
+            "description": "송금 딥링크용 은행명"
+          },
+          "account_no": {
+            "type": "string",
+            "description": "송금 딥링크용 계좌번호"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          }
+        },
+        "required": [
+          "trip_id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "멤버 추가",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "addSchedule",
+      "title": "일정 등록",
+      "description": "[트립머니] 여행방에 일정을 등록한다. 일정별 예산(planned_budget)을 미리 잡아둘 수 있다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string",
+            "description": "ISO8601 시작 시각"
+          },
+          "end_at": {
+            "type": "string",
+            "description": "ISO8601 종료 시각"
+          },
+          "location": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "planned_budget": {
+            "type": "number",
+            "description": "일정별 예산 (기준 통화)"
+          },
+          "actor_member_id": {
+            "type": "string",
+            "description": "등록 주체 멤버 id (권한 검사)"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          }
+        },
+        "required": [
+          "trip_id",
+          "title"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "일정 등록",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "updateSchedule",
+      "title": "일정 수정",
+      "description": "[트립머니] 기존 일정을 수정한다. 현재 시간과 비교해 지연된 일정을 미루는 등 조정에 사용. viewer 권한은 거부된다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "schedule_id": {
+            "type": "string"
+          },
+          "actor_member_id": {
+            "type": "string",
+            "description": "수정 주체 멤버 id (권한 검사)"
+          },
+          "title": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string"
+          },
+          "end_at": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "planned_budget": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "ongoing",
+              "done",
+              "canceled"
+            ]
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          },
+          "expected_updated_at": {
+            "type": "string",
+            "description": "낙관적 잠금: 마지막으로 읽은 updated_at(ISO). 그 사이 변경됐으면 거부"
+          }
+        },
+        "required": [
+          "schedule_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "일정 수정",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "addExpense",
+      "title": "비용 직접 등록",
+      "description": "[트립머니] 비용을 직접 입력한다. 현지통화로 입력하면 실시간 환율로 기준통화(보통 한화) 환산액이 함께 저장된다. 카드/현금 구분, 일정 귀속, N빵/커스텀 분담 지원.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "description": "현지(입력) 통화 금액"
+          },
+          "currency": {
+            "type": "string",
+            "description": "입력 통화(기본=여행방 기준통화)"
+          },
+          "payer_member_id": {
+            "type": "string",
+            "description": "결제한 멤버 id"
+          },
+          "schedule_id": {
+            "type": "string",
+            "description": "귀속 일정 id"
+          },
+          "pay_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "cash"
+            ],
+            "default": "card"
+          },
+          "exchange_rate": {
+            "type": "number",
+            "description": "1 현지통화 = ? 기준통화. 미지정 시 실시간 환율 자동 조회"
+          },
+          "spent_at": {
+            "type": "string",
+            "description": "지출 시각 ISO8601"
+          },
+          "note": {
+            "type": "string"
+          },
+          "actor_member_id": {
+            "type": "string"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          },
+          "split_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "custom",
+              "payer"
+            ],
+            "default": "equal",
+            "description": "equal=참여자 균등 N빵, custom=직접 분담, payer=결제자 전액"
+          },
+          "split_member_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "equal 분담 참여자(미지정 시 전원)"
+          },
+          "custom_shares": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "member_id": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "member_id",
+                "amount"
+              ],
+              "additionalProperties": false
+            },
+            "description": "custom 모드 멤버별 부담액(기준통화)"
+          }
+        },
+        "required": [
+          "trip_id",
+          "title",
+          "amount"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "비용 직접 등록",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "scanReceipt",
+      "title": "영수증 기반 비용 등록",
+      "description": "[트립머니] 영수증 사진으로 비용을 등록한다. 이미지를 base64(receipt_image_base64) 또는 공개 https URL(receipt_url)로 전달하면 CLOVA OCR 이 금액·가맹점·일자를 인식해 자동으로 검증·등록한다. 채팅에 첨부된 사진처럼 공개 URL 이 없을 때는 receipt_image_base64 사용을 권장한다. amount 를 직접 전달하면 OCR 없이 등록되며, spent_at 기준으로 진행 중 일정에 자동 귀속을 시도한다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "receipt_image_base64": {
+            "type": "string",
+            "description": "영수증 이미지의 base64 문자열(권장). data URI 접두어(data:image/...;base64,) 포함/미포함 모두 허용. 채팅 첨부 사진처럼 공개 URL 이 없을 때 사용."
+          },
+          "receipt_url": {
+            "type": "string",
+            "description": "영수증 이미지의 공개 https URL. OCR 엔진이 서버에서 직접 내려받아 인식한다."
+          },
+          "image_format": {
+            "type": "string",
+            "enum": [
+              "jpg",
+              "jpeg",
+              "png",
+              "pdf",
+              "tiff"
+            ],
+            "description": "이미지 포맷(미지정 시 자동 감지, 기본 jpg)"
+          },
+          "amount": {
+            "type": "number",
+            "description": "OCR 없이 직접 등록할 금액(전달 시 OCR 생략)"
+          },
+          "currency": {
+            "type": "string",
+            "description": "입력 통화(기본=여행방 기준통화)"
+          },
+          "title": {
+            "type": "string",
+            "description": "가맹점/항목명"
+          },
+          "payer_member_id": {
+            "type": "string",
+            "description": "결제한 멤버 id"
+          },
+          "schedule_id": {
+            "type": "string",
+            "description": "귀속 일정 id"
+          },
+          "pay_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "cash"
+            ],
+            "default": "card"
+          },
+          "exchange_rate": {
+            "type": "number",
+            "description": "1 현지통화 = ? 기준통화. 미지정 시 실시간 환율 자동 조회"
+          },
+          "spent_at": {
+            "type": "string",
+            "description": "지출 시각 ISO8601"
+          },
+          "note": {
+            "type": "string"
+          },
+          "actor_member_id": {
+            "type": "string"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          },
+          "split_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "custom",
+              "payer"
+            ],
+            "default": "equal",
+            "description": "equal=참여자 균등 N빵, custom=직접 분담, payer=결제자 전액"
+          },
+          "split_member_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "equal 분담 참여자(미지정 시 전원)"
+          },
+          "custom_shares": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "member_id": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "member_id",
+                "amount"
+              ],
+              "additionalProperties": false
+            },
+            "description": "custom 모드 멤버별 부담액(기준통화)"
+          }
+        },
+        "required": [
+          "trip_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "영수증 기반 비용 등록",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "getBudgetSummary",
+      "title": "예산/지출 요약",
+      "description": "[트립머니] 여행방의 예산 대비 지출을 요약한다. 총액, 결제수단별/통화별 합계, 일정별 예산 대비 실지출, 멤버별 결제액/부담액을 반환한다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키(전체)"
+          },
+          "share_token": {
+            "type": "string",
+            "description": "읽기 전용 공유 토큰"
+          }
+        },
+        "required": [
+          "trip_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "예산/지출 요약",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "calculateSettlement",
+      "title": "정산 계산 (N빵/각자)",
+      "description": "[트립머니] 여행 비용을 정산한다. mode=equal(총액 N빵), shares(비용별 기록된 분담 기준), individual(각자 지출 각자 부담). 멤버별 결제액/부담액/순액과 최소 송금 제안을 반환한다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "shares",
+              "individual"
+            ],
+            "default": "equal",
+            "description": "equal=N빵, shares=분담기록기준, individual=각자부담"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키(전체)"
+          },
+          "share_token": {
+            "type": "string",
+            "description": "읽기 전용 공유 토큰"
+          }
+        },
+        "required": [
+          "trip_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "정산 계산 (N빵/각자)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "updateExpense",
+      "title": "비용 수정",
+      "description": "[트립머니] 기존 비용을 수정한다. 금액/통화/환율이 바뀌면 기준통화 환산액을 재계산하고, 기존 분담(share) 비율을 보존하며 새 금액에 맞춰 재배분한다. viewer 권한은 거부된다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expense_id": {
+            "type": "string"
+          },
+          "actor_member_id": {
+            "type": "string",
+            "description": "수정 주체 멤버 id (권한 검사)"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "exchange_rate": {
+            "type": "number",
+            "description": "1 현지통화 = ? 기준통화. 미지정 시 실시간 조회"
+          },
+          "pay_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "cash"
+            ]
+          },
+          "payer_member_id": {
+            "type": "string"
+          },
+          "schedule_id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "spent_at": {
+            "type": "string",
+            "description": "지출 시각 ISO8601"
+          },
+          "expected_updated_at": {
+            "type": "string",
+            "description": "낙관적 잠금: 마지막으로 읽은 updated_at(ISO). 그 사이 변경됐으면 거부"
+          }
+        },
+        "required": [
+          "expense_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "비용 수정",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "deleteExpense",
+      "title": "비용 삭제",
+      "description": "[트립머니] 비용을 삭제한다. 연결된 분담(expense_shares)도 함께 삭제된다(되돌릴 수 없음). viewer 권한은 거부된다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expense_id": {
+            "type": "string"
+          },
+          "actor_member_id": {
+            "type": "string",
+            "description": "삭제 주체 멤버 id (권한 검사)"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "보호 여행방의 접근키"
+          }
+        },
+        "required": [
+          "expense_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "비용 삭제",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "createShareLink",
+      "title": "읽기 전용 공유 토큰 발급",
+      "description": "[트립머니] 여행방의 읽기 전용 공유 토큰(share_token)을 발급/회전한다. 이 토큰으로는 getBudgetSummary/calculateSettlement 조회만 가능(수정 불가). trip_key 소유자만 호출 가능. revoke=true 면 토큰을 폐기한다.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trip_id": {
+            "type": "string"
+          },
+          "trip_key": {
+            "type": "string",
+            "description": "방 접근키(전체 권한) — 보호 방이면 필수"
+          },
+          "revoke": {
+            "type": "boolean",
+            "default": false,
+            "description": "true 면 기존 공유 토큰을 폐기"
+          }
+        },
+        "required": [
+          "trip_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "읽기 전용 공유 토큰 발급",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}
