@@ -162,3 +162,21 @@ textarea.input{height:auto;min-height:96px;padding:12px 16px}
 .wordmark{font-size:96px;line-height:1;color:var(--ink);margin-bottom:24px}
 @media(max-width:767px){.wordmark{font-size:56px}}
 .footer nav{display:flex;gap:20px;flex-wrap:wrap;font-size:14px;margin-bottom:12px}
+
+/* ---- 앱 화면 공통 (검토·공유·운영자) ---- */
+.app-head{position:sticky;top:0;background:rgba(255,250,240,.96);border-bottom:1px solid var(--line);padding:12px 0;z-index:4}
+.app-head h1{font-size:22px}
+.app-main{padding:24px 0 64px}
+.section-app{display:grid;gap:12px}
+.section-app h2{font-size:18px}
+.section-app h3{font-size:16px}
+.modal h2{font-size:18px}
+.legs{display:grid;gap:10px}
+.cond-list{list-style:none;display:grid;gap:8px}
+.cond-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+.decision{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.reason{font-size:13px;color:var(--mut)}
+.stamp-inline{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#FFFDF7;padding:10px 16px;border-radius:12px;font-size:14px;z-index:20}
+.actions-fixed{position:sticky;bottom:0;background:var(--canvas);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px}
+.pos{color:var(--green)}.neg{color:var(--rose)}
