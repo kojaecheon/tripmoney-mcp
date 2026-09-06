@@ -36,6 +36,7 @@
 | 파일 | 책임 |
 |---|---|
 | `docs/design/README.md` | 목업 사용법, 장면 목록, 검증 결과 기록 |
+| `docs/design/mockups/package.json` | `{"type":"commonjs"}` 한 줄. 루트 `package.json`이 `"type":"module"`이라 이 디렉터리의 `.js`를 Node가 CommonJS로 읽게 한다(실행 중 발견된 결함의 판정, 원장 참조). 브라우저에는 영향 없음 |
 | `docs/design/mockups/tokens.css` | 스펙 4.1 토큰, 공통 카드·표·폼·버튼, 여정 레일, 서류 컴포넌트 3종, 반응형 규칙 |
 | `docs/design/mockups/data.js` | 합성 여행 데이터, 정산 계산, 장면별 상태(`TM_DATA` 전역 + CommonJS) |
 | `docs/design/mockups/components.js` | 이스케이프·금액·날짜 도우미, 여정 레일, 보딩패스, 스탬프, 수하물 태그, 버튼, 목업 이동 막대(`TM_UI` 전역 + CommonJS) |
