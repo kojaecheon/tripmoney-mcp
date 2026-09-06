@@ -1,0 +1,130 @@
+/* docs/design/mockups/tokens.css — 스펙 4장 디자인 시스템 */
+:root{
+  --canvas:#FFFAF0; --paper:#F5EFE3; --panel:#FFFDF7; --ink:#172133; --mut:#5E574B; --line:#DDD0BA;
+  --green:#1F6B4A; --amber:#B86718; --rose:#B14B3F; --blue:#305D88;
+  --lavender:#B8A4ED; --peach:#FFB084; --ochre:#E8B94A; --mint:#A4D4C5; --navy:#233049;
+  --disp:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
+  --disp-latin:'Fraunces','Pretendard Variable',serif;
+  --sans:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --shadow:0 18px 54px -34px rgba(23,33,51,.55);
+  --r-ctl:12px; --r-card:16px; --r-feature:24px; --r-doc:12px;
+  --max-landing:1280px; --max-app:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--canvas);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;font-size:16px}
+a{color:var(--blue)}
+img{max-width:100%;display:block}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* 제목: 한글 600 상한, 자간 -0.02em */
+h1,h2,h3,h4{font-family:var(--disp);font-weight:600;letter-spacing:-0.02em;line-height:1.2}
+h1{font-size:56px;line-height:1.08}
+h2{font-size:40px}
+h3{font-size:28px}
+h4{font-size:20px}
+.eyebrow{font-size:13px;color:var(--mut);letter-spacing:.06em;text-transform:none}
+.latin{font-family:var(--disp-latin)}
+small,.meta{font-size:14px;color:var(--mut)}
+.caption{font-size:13px;color:var(--mut)}
+@media(max-width:767px){h1{font-size:34px}h2{font-size:28px}h3{font-size:22px}}
+
+/* 레이아웃 */
+.shell{max-width:var(--max-landing);margin:0 auto;padding:0 24px}
+.shell-app{max-width:var(--max-app);margin:0 auto;padding:0 16px}
+.section{padding:96px 0}
+@media(max-width:767px){.section{padding:56px 0}}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+@media(max-width:1023px){.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.grid-2,.grid-3{grid-template-columns:1fr}}
+.stack{display:grid;gap:16px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:12px}
+
+/* 카드 */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+.card-lg{background:var(--paper);border-radius:var(--r-feature);padding:32px}
+.feature{border-radius:24px;padding:32px;color:var(--ink);display:grid;gap:12px;min-height:240px}
+.feature.lavender{background:var(--lavender)}
+.feature.peach{background:var(--peach)}
+.feature.ochre{background:var(--ochre)}
+.feature.mint{background:var(--mint)}
+.feature.navy{background:var(--navy);color:#FFFDF7}
+.feature .fragment{background:var(--panel);color:var(--ink);border-radius:12px;padding:12px;margin-top:auto}
+.band-paper{background:var(--paper);padding:96px 0}
+@media(max-width:767px){.band-paper{padding:56px 0}}
+.cta-band{background:var(--paper);border-radius:24px;padding:80px 32px;text-align:center}
+@media(max-width:767px){.cta-band{padding:40px 20px}}
+
+/* 버튼·입력 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:#FFFDF7;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-secondary{background:var(--canvas);color:var(--ink);border:1px solid var(--line)}
+.btn[disabled],.btn.is-disabled{background:var(--line);border-color:var(--line);color:var(--mut);cursor:not-allowed}
+.btn.block{width:100%}
+.input{height:44px;width:100%;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+textarea.input{height:auto;min-height:96px;padding:12px 16px}
+.field{display:grid;gap:6px;font-size:14px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.pill{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--paper);font-size:13px;font-weight:500}
+.pill.ok{background:#E6F0E9;color:var(--green)}
+.pill.wait{background:#F7EAD8;color:#7A4410}
+.pill.bad{background:#F3DEDB;color:#8E3A30}
+.pill.info{background:#E3EBF3;color:var(--blue)}
+
+/* 표 */
+.table{width:100%;border-collapse:collapse;font-size:14px}
+.table th{text-align:left;font-weight:500;color:var(--mut);padding:8px 10px;border-bottom:1px solid var(--line)}
+.table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.table td.num,.table th.num{text-align:right}
+
+/* 여정 레일 */
+.rail{display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0}
+.rail-step{display:flex;flex-direction:column;align-items:center;min-width:96px;position:relative;font-size:13px;color:var(--mut)}
+.rail-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:var(--panel)}
+.rail-step.done .rail-dot{background:var(--ink);border-color:var(--ink)}
+.rail-step.current .rail-dot{border-color:var(--blue);box-shadow:0 0 0 3px #E3EBF3}
+.rail-step.current{color:var(--ink);font-weight:600}
+.rail-line{flex:1;min-width:24px;border-top:2px dashed var(--line);margin-top:-18px}
+.rail-sla{font-size:11px;color:#7A4410;position:absolute;top:-14px}
+.rail-badge{margin-left:auto;align-self:flex-start}
+.rail-step .cond{display:none;position:absolute;top:44px;background:var(--ink);color:#FFFDF7;font-size:12px;padding:6px 8px;border-radius:8px;width:180px;text-align:center;z-index:2}
+.rail-step:hover .cond,.rail-step:focus-within .cond{display:block}
+
+/* 보딩패스 */
+.pass{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-doc);overflow:hidden;box-shadow:var(--shadow)}
+.pass-body{flex:1;padding:14px 16px;display:grid;gap:4px}
+.pass-body .leg{font-size:12px;color:var(--mut)}
+.pass-body .route{font-weight:600;font-size:18px}
+.pass-stub{width:150px;padding:14px 12px;border-left:2px dashed var(--line);display:grid;gap:6px;align-content:center;text-align:right;background:var(--panel)}
+.pass-stub .fare{font-size:18px;font-weight:600}
+@media(max-width:767px){.pass-stub{width:120px}}
+
+/* 스탬프 */
+.stamp{display:inline-grid;place-items:center;width:104px;height:104px;border-radius:50%;border:3px solid currentColor;font-size:12px;font-weight:600;line-height:1.25;text-align:center;transform:rotate(-8deg);padding:8px;background:transparent}
+.stamp.organizer,.stamp.participant{color:var(--green)}
+.stamp.objection{color:var(--rose)}
+.stamp.withdrawn,.stamp.locked{color:var(--ink)}
+.stamp.qa{color:var(--blue)}
+.stamp .date{font-family:var(--mono);font-weight:400;font-size:11px}
+
+/* 수하물 태그 */
+.tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 16px;border-radius:4px 12px 12px 4px;font-size:12px;font-weight:500;position:relative;border:1px solid var(--line);background:var(--panel)}
+.tag::before{content:"";position:absolute;left:5px;top:50%;width:6px;height:6px;border-radius:50%;background:var(--canvas);border:1px solid var(--line);transform:translateY(-50%)}
+.tag.verified{background:#E6F0E9;color:var(--green);border-color:#BFD9C9}
+.tag.ocr_only{background:#F7EAD8;color:#7A4410;border-color:#E7C9A2}
+.tag.manual{background:var(--panel);color:var(--ink);border-color:var(--ink)}
+.tag.deleted{background:#ECE9E2;color:var(--mut);border-color:var(--line)}
+
+/* 목업 전용 이동 막대 (설계 화면의 일부가 아님) */
+.mocknav{background:var(--ink);color:#FFFDF7;font-size:12px;padding:6px 12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.mocknav a{color:#FFFDF7}
+.mocknav .cur{text-decoration:underline}
+
+/* 모달 */
+.modal-bg{position:fixed;inset:0;background:rgba(23,33,51,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal{background:var(--panel);border-radius:16px;padding:24px;max-width:420px;width:100%;display:grid;gap:12px}
+[hidden]{display:none !important}
