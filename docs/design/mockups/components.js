@@ -59,7 +59,7 @@ var TM_UI = (function () {
 
   function mocknav(page, states, current) {
     var links = states.map(function (s) {
-      return '<a href="' + page + ".html?state=" + s + '"' + (s === current ? ' class="cur"' : "") + ">" + s + "</a>";
+      return '<a href="' + esc(page) + ".html?state=" + esc(s) + '"' + (s === current ? ' class="cur"' : "") + ">" + esc(s) + "</a>";
     }).join("");
     return '<nav class="mocknav" aria-label="목업 장면 이동"><a href="index.html">허브</a><span>' + esc(page) + "</span>" + links + "</nav>";
   }
