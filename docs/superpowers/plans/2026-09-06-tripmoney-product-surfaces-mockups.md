@@ -25,7 +25,7 @@
 - 법률 검토 전 문구(참여자 고지, 약관, 개인정보)에는 "검토 전 문구" 표시를 붙인다.
 - 문구 원칙: 버튼은 동사로 시작하는 한국어 문장체이고 마침표를 붙이지 않는다. 헤드라인은 "근거가 남는 해외여행 최종 정산"이다. "3~8명"은 운영 범위로 표기한다. 가격은 29,000원과 59,000원이다.
 - 커밋은 작업 단위로 하고 푸시는 하지 않는다. 커밋 메시지는 `design: ...` 접두어와 한국어 요약을 쓰고 마지막 줄에 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`을 붙인다.
-- 테스트 실행 명령은 항상 `node --test docs/design/mockups/tests/`이다. Node 20 이상이 필요하며 `node_modules`는 필요 없다.
+- 테스트 실행 명령은 항상 `node --test docs/design/mockups/tests/*.test.cjs`이다(디렉터리 인자는 최신 Node에서 실패한다, 원장 판정). Node 20 이상이 필요하며 `node_modules`는 필요 없다.
 
 ---
 
