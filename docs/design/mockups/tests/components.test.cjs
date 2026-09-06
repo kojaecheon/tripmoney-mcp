@@ -9,6 +9,12 @@ test("esc는 HTML 특수문자를 이스케이프한다", () => {
   assert.equal(ui.esc('<a href="x">&\'</a>'), "&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;");
 });
 
+test("js는 JS 문자열 리터럴 경계를 지킨다", () => {
+  const ui = load("components.js");
+  assert.equal(ui.js("O'Neil \\ x\nline"), "O\\'Neil \\\\ x\\nline");
+  assert.equal(ui.js(null), "");
+});
+
 test("won은 원화 기호와 천 단위 구분 정수를 만든다", () => {
   const ui = load("components.js");
   assert.equal(ui.won(37217), "₩37,217");

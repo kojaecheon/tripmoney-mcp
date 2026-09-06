@@ -6,6 +6,10 @@ var TM_UI = (function () {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  // JS 문자열 리터럴(작은따옴표) 안에 넣을 값 이스케이프. btn()의 esc()가 HTML 속성 경계를 지키고, 이 함수가 JS 문자열 경계를 지킨다.
+  function js(s) {
+    return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n/g, "\\n");
+  }
   function won(n) { return "₩" + Math.round(n).toLocaleString("ko-KR"); }
   function money(amount, currency, krwAmount) {
     if (currency === "KRW") return '<span class="num">' + won(amount) + "</span>";
@@ -79,6 +83,6 @@ var TM_UI = (function () {
     return kinds;
   }
 
-  return { esc: esc, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, STAMPS: STAMPS, TAGS: TAGS };
+  return { esc: esc, js: js, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, STAMPS: STAMPS, TAGS: TAGS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = TM_UI;

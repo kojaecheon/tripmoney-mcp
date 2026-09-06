@@ -30,7 +30,7 @@ var TM_RENDER_REVIEW = (function () {
         return '<tr class="member"><td>' + U.esc(m.alias) + '</td><td class="num">' + U.won(m.paid) + '</td><td class="num">' + U.won(m.owed) + '</td><td class="num ' + (m.net >= 0 ? "pos" : "neg") + '">' + (m.net >= 0 ? "+" : "") + U.won(m.net) + "</td></tr>";
       }).join("") + "</tbody></table>" +
       '<h3>송금 제안</h3><div class="legs">' + v.transfers.map(function (t, i) {
-        return U.pass(t, { index: i + 1, total: v.transfers.length, action: { label: "카톡 문구 복사", onclick: "TM_RENDER_REVIEW.copyText('" + t.from + " → " + t.to + " " + U.won(t.amount) + "')" } });
+        return U.pass(t, { index: i + 1, total: v.transfers.length, action: { label: "카톡 문구 복사", onclick: "TM_RENDER_REVIEW.copyText('" + U.js(t.from + " → " + t.to + " " + U.won(t.amount)) + "')" } });
       }).join("") + "</div></section>";
   }
 
