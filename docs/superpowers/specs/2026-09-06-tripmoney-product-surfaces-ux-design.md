@@ -168,7 +168,7 @@
 | 입력 | `--input` | 카드색 바탕, 헤어라인 외곽선, 높이 44px, 모서리 12px | 폼 입력 |
 | 그림자 | `--shadow` | 기존 랜딩 값 유지 | 서류 컴포넌트에만 사용 |
 
-Space Grotesk와 Inter는 쓰지 않는다. 의미색은 네 가지로 고정하고 다른 의미색을 추가하지 않는다. 표현색 다섯 가지는 랜딩과 허브의 특징 카드에만 순환해서 쓰고, 같은 색을 연속으로 두 번 쓰지 않으며, 검토·공유·운영자 화면에서는 쓰지 않는다. 한글 제목 굵기는 600을 넘기지 않는다. 표현색 위의 글자는 라벤더·피치·오커·민트에서는 잉크, 딥네이비에서는 흰색이며 구현 시 AA 대비를 확인한다.
+Space Grotesk와 Inter는 쓰지 않는다. 의미색은 네 가지로 고정하고 다른 의미색을 추가하지 않는다. 표현색 다섯 가지는 랜딩과 허브의 특징 카드에만 순환해서 쓰고, 같은 색을 연속으로 두 번 쓰지 않으며, 검토·공유·운영자 화면에서는 쓰지 않는다. 한글 제목 굵기는 600을 넘기지 않는다. 표현색 위의 글자는 라벤더·피치·오커·민트에서는 잉크, 딥네이비에서는 흰색이며 구현 시 AA 대비를 확인한다. 옅은 배경 위의 작은 글자(대기·이의 필, OCR 미검수 태그, SLA 표시)에는 호박색과 장미색의 어두운 변형 `#7A4410`, `#8E3A30`을 쓴다. 원래 값은 AA 4.5:1에 미달했기 때문이다.
 
 ### 4.2 여정 레일 컴포넌트
 
@@ -320,17 +320,38 @@ docs/design/
   README.md
   mockups/
     index.html
+    package.json
     tokens.css
     data.js
+    components.js
+    render-landing.js
+    render-review.js
+    render-share.js
+    render-operator.js
     landing.html
     review.html
     share.html
     operator.html
+    tests/
+      helpers.cjs
+      smoke.test.cjs
+      tokens.test.cjs
+      data.test.cjs
+      components.test.cjs
+      render-landing.test.cjs
+      render-review.test.cjs
+      render-share.test.cjs
+      render-operator.test.cjs
+      pages.test.cjs
+      contrast.test.cjs
 ```
 
 - `tokens.css`는 4.1 토큰, 4.2 레일, 4.3 서류 컴포넌트, 공통 카드·표·폼·버튼 스타일을 담는다.
 - `data.js`는 합성 여행 데이터와 장면별 상태 객체를 담고, 각 페이지는 `state` 값을 읽어 해당 장면을 그린다.
 - 페이지 간 이동은 허브와 각 페이지 상단의 작은 이동 막대로 제공한다. 이 이동 막대는 목업 전용이며 실제 화면 설계의 일부가 아니다.
+- `components.js`는 여정 레일, 서류 컴포넌트 3종, 버튼과 도우미를 순수 함수로 담고, `render-*.js`는 화면별 렌더 함수를 담는다. 모든 스크립트는 브라우저 전역과 CommonJS 내보내기를 함께 제공한다.
+- `tests/`는 Node 내장 테스트 러너로 토큰 값, 정산 불변식, 모티프 예산, 채운 버튼 수, 헤딩 구조, 대비 AA를 자동 검사한다. 실행 명령은 `node --test docs/design/mockups/tests/*.test.cjs`이다.
+- `mockups/package.json`은 `{"type":"commonjs"}` 한 줄이다. 저장소 루트 `package.json`이 `"type":"module"`이라 이 디렉터리의 `.js`를 Node가 CommonJS로 읽게 하며, 브라우저에는 영향이 없다.
 
 ### 6.2 합성 데이터
 
