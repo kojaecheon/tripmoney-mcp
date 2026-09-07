@@ -94,3 +94,33 @@ test("mocknav와 motifKinds", () => {
   assert.match(nav, /class="cur"[^>]*>finalized/);
   assert.deepEqual(ui.motifKinds('<div class="pass"></div><span class="tag verified"></span>'), ["pass", "tag"]);
 });
+
+test("trapModal은 첫 요소에 포커스하고 Tab을 가두며 Escape로 닫는다", () => {
+  const ui = load("components.js");
+  const focused = [];
+  const mk = (n) => ({ n, hidden: false, focus() { focused.push(n); globalThis.document.activeElement = this; } });
+  const items = [mk("a"), mk("b")];
+  let handler = null;
+  let closed = 0;
+  globalThis.document = { activeElement: null };
+  const root = {
+    addEventListener: (t, h) => { handler = h; },
+    removeEventListener: () => { handler = null; },
+    querySelectorAll: () => items,
+  };
+  const release = ui.trapModal(root, () => { closed++; });
+  assert.deepEqual(focused, ["a"]);
+  handler({ key: "Tab", shiftKey: false, preventDefault() {} });
+  assert.deepEqual(focused, ["a"]);
+  globalThis.document.activeElement = items[1];
+  handler({ key: "Tab", shiftKey: false, preventDefault() {} });
+  assert.equal(focused[focused.length - 1], "a");
+  globalThis.document.activeElement = items[0];
+  handler({ key: "Tab", shiftKey: true, preventDefault() {} });
+  assert.equal(focused[focused.length - 1], "b");
+  handler({ key: "Escape", preventDefault() {} });
+  assert.equal(closed, 1);
+  release();
+  assert.equal(handler, null);
+  delete globalThis.document;
+});

@@ -42,6 +42,6 @@
 | operator/case | 통과 | 통과 | 통과 | 없음 | 체크포인트·자료수집·영수증 3열 등 구획 순서 확인 |
 | operator/login | 통과 | 통과 | 통과 | 없음 | 이메일 입력 폼만 표시, 레일·모티프 없음 확인 |
 
-접근성 점검(7.2): 대비 AA는 `contrast.test.cjs`, 헤딩 구조·빈 버튼·alt는 `pages.test.cjs`로 자동 확인. 포커스 링(호박색 3px, `outline-offset:3px`)은 landing·review·share·operator 네 페이지에서 각 1개 장면씩 Tab 키로 수동 확인해 모두 통과했다. 결과: 통과. 다만 모달 포커스 가둠과 Esc 닫힘은 수동 확인 결과 **미구현**이다 — review의 카카오 공유 미리보기 모달과 share의 이의 제기 모달 모두 Escape 키로 닫히지 않고 Tab이 모달 밖 요소로 빠져나간다. 시각 검증 범위를 벗어나는 별도 기능 추가라 이번 작업에서는 고치지 않고 후속 작업으로 남긴다.
+접근성 점검(7.2): 대비 AA는 `contrast.test.cjs`, 헤딩 구조·빈 버튼·alt는 `pages.test.cjs`로 자동 확인. 포커스 링(호박색 3px, `outline-offset:3px`)은 landing·review·share·operator 네 페이지에서 각 1개 장면씩 Tab 키로 수동 확인해 모두 통과했다. 결과: 통과. 모달 포커스 가둠과 Esc 닫힘은 `components.js`의 `trapModal`로 구현했다 — review의 카카오 공유 미리보기 모달과 share의 이의 제기 모달 모두 Escape 키로 닫히고 Tab이 모달 안 요소 사이에서만 순환하며, 닫힌 뒤 포커스는 모달을 연 트리거 버튼으로 돌아간다. `trapModal`은 `components.test.cjs`로 자동 검사하고, 실제 두 모달의 동작은 브라우저에서 수동으로 재확인했다. 결과: 통과.
 
 내용 규칙 점검(7.3): 모티프 예산·금액 병기·계좌 미노출·참여자 최소화·검토 전 문구 표시는 `render-*.test.cjs`와 `pages.test.cjs`로 자동 확인. 결과: 통과.

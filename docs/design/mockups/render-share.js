@@ -3,6 +3,7 @@
 var TM_RENDER_SHARE = (function () {
   var U = TM_UI;
   var current = null, mode = "notice", noticeAt = null;
+  var releaseTrap = null, lastFocus = null;
 
   function alias(d, id) { var m = d.members.find(function (x) { return x.id === id; }); return m ? m.alias : id; }
   function stageLabel(d, key) { var s = d.stages.find(function (x) { return x.key === key; }); return s ? s.label : key; }
@@ -73,7 +74,8 @@ var TM_RENDER_SHARE = (function () {
   function withdraw() { setMyDecision("withdrawn", "본인 철회"); toast("이의를 철회했습니다"); }
   function objectModal() {
     document.getElementById("modal").innerHTML = '<div class="modal-bg" onclick="TM_RENDER_SHARE.closeModal()"><form class="modal" role="dialog" aria-modal="true" aria-label="이의 제기" onclick="event.stopPropagation()" onsubmit="return TM_RENDER_SHARE.submitObjection(event)"><h2>이의 제기</h2><label class="field">사유<textarea class="input" name="reason" placeholder="어느 항목이 왜 다른지 적어 주세요"></textarea></label><p class="form-msg" aria-live="polite"></p><div class="btn-row">' + U.btn("취소", { secondary: true, onclick: "TM_RENDER_SHARE.closeModal()" }) + '<button type="submit" class="btn">이의 보내기</button></div></form></div>';
-    var ta = document.querySelector("#modal textarea"); if (ta) ta.focus();
+    lastFocus = document.activeElement;
+    releaseTrap = U.trapModal(document.querySelector("#modal .modal"), closeModal);
   }
   function submitObjection(ev) {
     ev.preventDefault(); var f = ev.target, reason = f.reason.value.trim(), msg = f.querySelector(".form-msg");
@@ -81,7 +83,11 @@ var TM_RENDER_SHARE = (function () {
     closeModal(); setMyDecision("objection", reason); toast("이의를 보냈습니다"); return false;
   }
   function copyText(text) { if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {}); toast("복사했습니다: " + text); }
-  function closeModal() { document.getElementById("modal").innerHTML = ""; }
+  function closeModal() {
+    if (releaseTrap) { releaseTrap(); releaseTrap = null; }
+    document.getElementById("modal").innerHTML = "";
+    if (lastFocus && lastFocus.focus) { lastFocus.focus(); lastFocus = null; }
+  }
 
   return { render: render, renderState: renderState, myTransfers: myTransfers, go: go, approve: approve, withdraw: withdraw, objectModal: objectModal, submitObjection: submitObjection, copyText: copyText, closeModal: closeModal, toast: toast };
 })();

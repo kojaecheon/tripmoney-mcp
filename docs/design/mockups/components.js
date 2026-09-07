@@ -83,6 +83,27 @@ var TM_UI = (function () {
     return kinds;
   }
 
-  return { esc: esc, js: js, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, STAMPS: STAMPS, TAGS: TAGS };
+  // 모달 접근성: Escape로 닫고 Tab 포커스를 모달 안에 가둔다. 첫 포커스 가능 요소로 포커스를 옮기고, 해제 함수를 돌려준다.
+  function trapModal(root, onClose) {
+    var sel = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
+    function items() {
+      return Array.prototype.slice.call(root.querySelectorAll(sel)).filter(function (el) { return !el.hidden; });
+    }
+    function handler(e) {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
+      if (e.key !== "Tab") return;
+      var list = items();
+      if (!list.length) return;
+      var first = list[0], last = list[list.length - 1], active = document.activeElement;
+      if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    }
+    root.addEventListener("keydown", handler);
+    var firstItem = items()[0];
+    if (firstItem) firstItem.focus();
+    return function release() { root.removeEventListener("keydown", handler); };
+  }
+
+  return { esc: esc, js: js, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, trapModal: trapModal, STAMPS: STAMPS, TAGS: TAGS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = TM_UI;

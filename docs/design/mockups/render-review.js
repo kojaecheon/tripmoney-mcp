@@ -3,6 +3,7 @@
 var TM_RENDER_REVIEW = (function () {
   var U = TM_UI;
   var current = null; // 현재 그려진 장면 객체 (상호작용 재렌더용)
+  var releaseTrap = null, lastFocus = null;
 
   function stageLabel(d, key) { var s = d.stages.find(function (x) { return x.key === key; }); return s ? s.label : key; }
   function alias(d, id) { var m = d.members.find(function (x) { return x.id === id; }); return m ? m.alias : id; }
@@ -123,8 +124,14 @@ var TM_RENDER_REVIEW = (function () {
     var v = versionOf(TM_DATA, current).result, fx = TM_DATA.fx[TM_DATA.fx.length - 1];
     var text = "[" + TM_DATA.trip.name + "] 정산 v" + current.version + "\n기준 환율 " + fx.pair + " " + fx.rate + " (" + fx.as_of + ")\n" + v.transfers.map(function (t) { return "· " + t.from + " → " + t.to + " " + U.won(t.amount); }).join("\n") + "\n결과 링크는 만료됩니다";
     document.getElementById("modal").innerHTML = '<div class="modal-bg" onclick="TM_RENDER_REVIEW.closeModal()"><div class="modal" role="dialog" aria-modal="true" aria-label="카카오 공유 미리보기" onclick="event.stopPropagation()"><h2>카카오 공유 미리보기</h2><pre style="white-space:pre-wrap;font-size:14px">' + U.esc(text) + "</pre>" + U.btn("닫기", { secondary: true, onclick: "TM_RENDER_REVIEW.closeModal()" }) + "</div></div>";
+    lastFocus = document.activeElement;
+    releaseTrap = U.trapModal(document.querySelector("#modal .modal"), closeModal);
   }
-  function closeModal() { document.getElementById("modal").innerHTML = ""; }
+  function closeModal() {
+    if (releaseTrap) { releaseTrap(); releaseTrap = null; }
+    document.getElementById("modal").innerHTML = "";
+    if (lastFocus && lastFocus.focus) { lastFocus.focus(); lastFocus = null; }
+  }
 
   return { render: render, renderState: renderState, lockConditions: lockConditions, approve: approve, requestRevision: requestRevision, requestLock: requestLock, copyText: copyText, preview: preview, closeModal: closeModal };
 })();
