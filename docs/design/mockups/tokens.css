@@ -112,7 +112,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 16px}
 .stamp .date{font-family:var(--mono);font-weight:400;font-size:11px}
 
 /* 수하물 태그 */
-.tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 16px;border-radius:4px 12px 12px 4px;font-size:12px;font-weight:500;position:relative;border:1px solid var(--line);background:var(--panel)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px 2px 16px;border-radius:4px 12px 12px 4px;font-size:12px;font-weight:500;position:relative;border:1px solid var(--line);background:var(--panel)}
 .tag::before{content:"";position:absolute;left:5px;top:50%;width:6px;height:6px;border-radius:50%;background:var(--canvas);border:1px solid var(--line);transform:translateY(-50%)}
 .tag.verified{background:#E6F0E9;color:var(--green);border-color:#BFD9C9}
 .tag.ocr_only{background:#F7EAD8;color:#7A4410;border-color:#E7C9A2}
