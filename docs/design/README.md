@@ -39,9 +39,9 @@
 | share/active | 통과 | 통과 | 통과 | 없음 | "계속" 클릭 시 활성 화면 전환, 이의 제기 모달에서 빈 사유 제출 시 "사유를 적어 주세요" 표시 확인 |
 | share/expired | 통과 | 통과 | 통과 | 없음 | 여행명 없이 안내 문구만 표시 확인 |
 | operator/queue | 통과 | 통과 | 통과 | 없음 | 큐에서 C-013 클릭 시 상세가 전환되고 일시정지 배지 표시 확인 |
-| operator/case | 통과 | 통과 | 통과 | 없음 | 체크포인트·자료수집·영수증 3열 등 구획 순서 확인 |
+| operator/case | 통과 | 통과 | 통과 | 없음 | 체크포인트·자료수집·지출 목록·영수증 3열 등 구획 순서 확인. C-014만 상세 제공, QA 스탬프·검수자 승인 시각·지출 목록 태그·이의 목록 추가(최종 검토 반영) |
 | operator/login | 통과 | 통과 | 통과 | 없음 | 이메일 입력 폼만 표시, 레일·모티프 없음 확인 |
 
-접근성 점검(7.2): 대비 AA는 `contrast.test.cjs`, 헤딩 구조·빈 버튼·alt는 `pages.test.cjs`로 자동 확인. 포커스 링(호박색 3px, `outline-offset:3px`)은 landing·review·share·operator 네 페이지에서 각 1개 장면씩 Tab 키로 수동 확인해 모두 통과했다. 결과: 통과. 모달 포커스 가둠과 Esc 닫힘은 `components.js`의 `trapModal`로 구현했다 — review의 카카오 공유 미리보기 모달과 share의 이의 제기 모달 모두 Escape 키로 닫히고 Tab이 모달 안 요소 사이에서만 순환하며, 닫힌 뒤 포커스는 모달을 연 트리거 버튼으로 돌아간다. `trapModal`은 `components.test.cjs`로 자동 검사하고, 실제 두 모달의 동작은 브라우저에서 수동으로 재확인했다. 결과: 통과.
+접근성 점검(7.2): 대비 AA는 `contrast.test.cjs`, 헤딩 구조·빈 버튼·alt는 `pages.test.cjs`로 자동 확인. 포커스 링(호박색 3px, `outline-offset:3px`)은 landing·review·share·operator 네 페이지에서 각 1개 장면씩 Tab 키로 수동 확인해 모두 통과했다. 결과: 통과. 모달 포커스 가둠과 Esc 닫힘은 `components.js`의 `trapModal`로 구현했다 — review의 카카오 공유 미리보기 모달과 share의 이의 제기 모달 모두 Escape 키로 닫히고 Tab이 모달 안 요소 사이에서만 순환하며, 닫힌 뒤 포커스는 모달을 연 트리거 버튼으로 돌아간다. `trapModal`은 `components.test.cjs`로 자동 검사하고, 실제 두 모달의 동작은 브라우저에서 수동으로 재확인했다. 결과: 통과. 터치 대상 44px은 운영자 탭(`.tabs .pill`)과 레일 단계(`.rail-step`)에 `min-height:44px` 규칙을 두고 `tokens.test.cjs`로 자동 검사한다. 레일은 좁은 화면에서 가로로 스크롤되므로 `components.js`의 `revealRail()`이 첫 그리기와 매 `mount()`마다 현재 단계를 보이는 위치로 옮기고, 참여자 공유 화면의 레일은 `.rail-sm`으로 축소해 375px에서도 현재 단계와 앞뒤 단계가 함께 보인다. 결과: 통과.
 
 내용 규칙 점검(7.3): 모티프 예산·금액 병기·계좌 미노출·참여자 최소화·검토 전 문구 표시는 `render-*.test.cjs`와 `pages.test.cjs`로 자동 확인. 결과: 통과.
