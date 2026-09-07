@@ -40,7 +40,7 @@ test("큐: SLA 순 정렬, 일시정지는 마지막, 선택은 C-014, 검수 �
 
 test("케이스 상세: 구획 순서, 자료수집 5항목, 영수증 3열, 불변식 8개", () => {
   const { html, r, d } = page("case");
-  const ids = ["case-head", "collect", "receipt", "fx", "invariants", "objections", "qa", "ops"];
+  const ids = ["case-head", "collect", "expenses", "receipt", "fx", "invariants", "objections", "qa", "ops"];
   const pos = ids.map((id) => html.indexOf(`id="${id}"`));
   pos.forEach((p, i) => assert.ok(p >= 0, `${ids[i]} 없음`));
   assert.deepEqual([...pos].sort((a, b) => a - b), pos);
@@ -73,6 +73,46 @@ test("QA·잠금·하단 패널: allowlist 상태, 개인정보 금지 안내, �
   const ui = load("components.js");
   for (const form of html.split("<form").slice(1)) assert.deepEqual(ui.motifKinds(form.split("</form>")[0]), []);
   assert.ok(ui.motifKinds(html).length <= 3);
+});
+
+test("큐 탭은 이동 링크 둘과 준비 중 설정 표시만 둔다", () => {
+  const { html } = page("queue");
+  assert.doesNotMatch(html, /role="tablist"/);
+  assert.match(html, /class="tabs" role="navigation" aria-label="운영자 메뉴"/);
+  assert.match(html, /aria-disabled="true"[^>]*>설정 · 준비 중</);
+  assert.match(html, /검수 담당 · reviewer/);
+});
+
+test("C-014가 아닌 케이스는 머리 정보와 상세 없음 안내만 둔다", () => {
+  const d = load("data.js");
+  const r = load("render-operator.js");
+  const html = r.renderState(d, { view: "queue", selected: "C-013" });
+  assert.match(html, /rail-badge/);
+  assert.match(html, /일시정지 · 고객 답변 대기/);
+  assert.doesNotMatch(html, /id="receipt"/);
+  assert.match(html, /상세 목업은 준비되지 않았습니다/);
+  assert.doesNotMatch(html, /<h3>체크포인트<\/h3>/);
+  assert.equal(filled(html), 0);
+});
+
+test("case 장면이라도 C-014가 아니면 상세를 열지 않는다", () => {
+  const d = load("data.js");
+  const r = load("render-operator.js");
+  const html = r.renderState(d, { view: "case", selected: "C-012" });
+  assert.doesNotMatch(html, /쩟페어 야시장/);
+  assert.match(html, /상세 목업은 준비되지 않았습니다/);
+});
+
+test("케이스 상세: 지출 12행과 근거 태그, 검수자·승인 시각, QA 스탬프 안내", () => {
+  const { html } = page("case");
+  const ex = between(html, 'id="expenses"', 'id="receipt"');
+  assert.equal((ex.match(/<tr class="expense">/g) || []).length, 12);
+  assert.match(ex, /class="tag verified"/);
+  assert.match(ex, /class="tag ocr_only"/);
+  assert.match(ex, /class="tag manual"/);
+  assert.match(html, /검수자 reviewer · 승인 시각 미승인/);
+  assert.match(html, /내부 QA 스탬프가 찍힙니다/);
+  assert.doesNotMatch(html, /class="stamp qa"/);
 });
 
 test("리드 패널은 마스킹된 연락처만 보여준다", () => {

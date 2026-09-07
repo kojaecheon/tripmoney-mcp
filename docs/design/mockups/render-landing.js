@@ -31,7 +31,7 @@ var TM_RENDER_LANDING = (function () {
       '<p class="lead">영수증, 환율, 분담 근거를 사람이 검수하고 참여자 확인까지 거친 최종 정산을 전달합니다.</p>' +
       '<ul class="facts"><li>고객 자금을 보관하지 않습니다</li><li>3~8명 여행이 운영 범위입니다</li><li>여행이 끝난 뒤 정산합니다</li></ul>' +
       '<div class="btn-row">' + U.btn("신청하기", { href: "#apply" }) + U.btn("절차 보기", { secondary: true, href: "#flow" }) + "</div></div>" +
-      '<div class="card-lg hero-art" role="img" aria-label="완성된 정산 결과 예시"><div class="stack">' + U.pass(t, { index: 1, total: v.transfers.length }) +
+      '<div class="card-lg hero-art"><p class="sr-only">완성된 정산 결과 예시</p><div class="stack">' + U.pass(t, { index: 1, total: v.transfers.length }) +
       '<div class="card">' + expenseRow(d, e) + "</div>" +
       '<div style="text-align:right">' + U.stamp("organizer", "2026-09-05") + "</div></div></div></div></section>";
   }
@@ -109,6 +109,7 @@ var TM_RENDER_LANDING = (function () {
   function submit(ev) {
     ev.preventDefault();
     var f = ev.target, contact = f.contact.value.trim(), msg = f.querySelector(".form-msg");
+    msg.style.color = "";
     var ok = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(contact) || /^01\d-?\d{3,4}-?\d{4}$/.test(contact);
     if (!ok) { msg.textContent = "이메일 또는 휴대전화 번호 하나를 입력해 주세요"; return false; }
     if (!f.consent.checked) { msg.textContent = "동의에 체크해야 신청할 수 있습니다"; return false; }

@@ -95,6 +95,35 @@ test("mocknav와 motifKinds", () => {
   assert.deepEqual(ui.motifKinds('<div class="pass"></div><span class="tag verified"></span>'), ["pass", "tag"]);
 });
 
+test("motifKinds는 클래스 토큰만 세고 보조 클래스는 세지 않는다", () => {
+  const ui = load("components.js");
+  assert.deepEqual(ui.motifKinds('<div class="stamp-inline"></div>'), []);
+  assert.deepEqual(ui.motifKinds('<span class="foo stamp organizer">'), ["stamp"]);
+  assert.deepEqual(ui.motifKinds('<div class="pass-body">'), []);
+});
+
+test("revealRail은 document가 없으면 조용히 반환한다", () => {
+  const ui = load("components.js");
+  assert.equal(typeof ui.revealRail, "function");
+  delete globalThis.document;
+  assert.doesNotThrow(() => ui.revealRail());
+  let asked = null, scrolled = null;
+  globalThis.document = { querySelector: (s) => { asked = s; return { scrollIntoView: (o) => { scrolled = o; } }; } };
+  ui.revealRail();
+  assert.equal(asked, ".rail-step.current");
+  assert.deepEqual(scrolled, { inline: "center", block: "nearest" });
+  delete globalThis.document;
+});
+
+test("레일 컨테이너는 group, 단계는 role 없이 초점만 받는다", () => {
+  const d = load("data.js");
+  const ui = load("components.js");
+  const html = ui.rail(d.stages, "reviewing");
+  assert.match(html, /<div class="rail" role="group" aria-label="정산 진행 단계">/);
+  assert.doesNotMatch(html, /role="list"|role="listitem"/);
+  assert.equal((html.match(/tabindex="0"/g) || []).length, 6);
+});
+
 test("trapModal은 첫 요소에 포커스하고 Tab을 가두며 Escape로 닫는다", () => {
   const ui = load("components.js");
   const focused = [];

@@ -20,6 +20,7 @@
   var s = TM_UI.stateFromUrl("notice", states);
   document.getElementById("mocknav").innerHTML = TM_UI.mocknav("share", states, s);
   document.getElementById("app").innerHTML = TM_RENDER_SHARE.render(TM_DATA, s);
+  TM_UI.revealRail();
 })();
 </script>
 </body>

@@ -30,7 +30,7 @@ var TM_RENDER_SHARE = (function () {
     var fx = d.fx[d.fx.length - 1];
     var counts = { verified: 0, ocr_only: 0, manual: 0 };
     d.expenses.forEach(function (e) { counts[e.evidence] = (counts[e.evidence] || 0) + 1; });
-    var head = '<header class="app-head"><div class="shell-app"><div class="between"><div><p class="eyebrow">참여자 확인</p><h1>' + U.esc(d.trip.name) + ' <span class="num meta">v' + st.version + "</span></h1></div>" + U.pill(stageLabel(d, st.stage), "info") + "</div>" + U.rail(d.stages, st.stage) + "</div></header>";
+    var head = '<header class="app-head"><div class="shell-app"><div class="between"><div><p class="eyebrow">참여자 확인</p><h1>' + U.esc(d.trip.name) + ' <span class="num meta">v' + st.version + "</span></h1></div>" + U.pill(stageLabel(d, st.stage), "info") + '</div><div class="rail-sm">' + U.rail(d.stages, st.stage) + "</div></div></header>";
     var meSec = '<section class="card section-app" id="me"><h2>' + U.esc(alias(d, st.viewer_id)) + ' 님</h2><table class="kv"><tr><th>낸 돈</th><td class="num">' + U.won(me.paid) + '</td></tr><tr><th>부담</th><td class="num">' + U.won(me.owed) + '</td></tr><tr><th>순액</th><td class="num ' + (me.net >= 0 ? "pos" : "neg") + '">' + (me.net >= 0 ? "+" : "") + U.won(me.net) + "</td></tr></table></section>";
     var legs = mine.length ? mine.map(function (t, i) {
       var other = t.from_id === st.viewer_id ? t.to : t.from;
@@ -61,7 +61,7 @@ var TM_RENDER_SHARE = (function () {
   }
   function render(d, key) { return renderState(d, d.scenes.share[key], key === "notice" ? "notice" : "active"); }
 
-  function mount(html) { document.getElementById("app").innerHTML = html; }
+  function mount(html) { document.getElementById("app").innerHTML = html; U.revealRail(); }
   function toast(msg) { var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
   function go(m) { if (m === "active" && !noticeAt) noticeAt = "2026-09-06 14:30"; mount(renderState(TM_DATA, current, m)); }
   function setMyDecision(decision, reason) {
@@ -80,7 +80,10 @@ var TM_RENDER_SHARE = (function () {
   function submitObjection(ev) {
     ev.preventDefault(); var f = ev.target, reason = f.reason.value.trim(), msg = f.querySelector(".form-msg");
     if (!reason) { msg.textContent = "사유를 적어 주세요"; return false; }
-    closeModal(); setMyDecision("objection", reason); toast("이의를 보냈습니다"); return false;
+    closeModal(); setMyDecision("objection", reason);
+    var sec = document.getElementById("decide");
+    if (sec) { sec.setAttribute("tabindex", "-1"); sec.focus(); }
+    toast("이의를 보냈습니다"); return false;
   }
   function copyText(text) { if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {}); toast("복사했습니다: " + text); }
   function closeModal() {

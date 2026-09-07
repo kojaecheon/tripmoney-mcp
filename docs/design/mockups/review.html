@@ -20,6 +20,7 @@
   var s = TM_UI.stateFromUrl("awaiting_organizer", states);
   document.getElementById("mocknav").innerHTML = TM_UI.mocknav("review", states, s);
   document.getElementById("app").innerHTML = TM_RENDER_REVIEW.render(TM_DATA, s);
+  TM_UI.revealRail();
 })();
 </script>
 </body>

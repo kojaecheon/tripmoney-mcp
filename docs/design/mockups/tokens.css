@@ -83,7 +83,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 16px}
 
 /* 여정 레일 */
 .rail{display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0}
-.rail-step{display:flex;flex-direction:column;align-items:center;min-width:96px;position:relative;font-size:13px;color:var(--mut)}
+.rail-step{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:96px;min-height:44px;position:relative;font-size:13px;color:var(--mut)}
 .rail-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:var(--panel)}
 .rail-step.done .rail-dot{background:var(--ink);border-color:var(--ink)}
 .rail-step.current .rail-dot{border-color:var(--blue);box-shadow:0 0 0 3px #E3EBF3}
@@ -170,6 +170,7 @@ textarea.input{height:auto;min-height:96px;padding:12px 16px}
 .section-app{display:grid;gap:12px}
 .section-app h2{font-size:18px}
 .section-app h3{font-size:16px}
+.section-app .card > h3{font-size:16px}
 .modal h2{font-size:18px}
 .legs{display:grid;gap:10px}
 .cond-list{list-style:none;display:grid;gap:8px}
@@ -188,12 +189,14 @@ textarea.input{height:auto;min-height:96px;padding:12px 16px}
 .kv{width:100%;font-size:15px}
 .kv th{text-align:left;font-weight:500;color:var(--mut);padding:8px 0}
 .kv td{text-align:right;padding:8px 0}
+.rail-sm .rail-step{min-width:72px;font-size:12px}
+.rail-sm .rail-dot{width:12px;height:12px}
 
 /* ---- 운영자 ---- */
 .op-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
 @media(max-width:1179px){.op-grid{grid-template-columns:1fr}}
 .tabs{display:flex;gap:8px}
-.tabs .pill{cursor:pointer;text-decoration:none;color:var(--mut)}
+.tabs .pill{cursor:pointer;text-decoration:none;color:var(--mut);height:auto;min-height:44px;padding:0 16px}
 .tabs .pill.info{color:var(--blue)}
 .case-row{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;font-size:14px}
 .case-row.on{border-color:var(--ink)}

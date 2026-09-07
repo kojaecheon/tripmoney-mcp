@@ -49,10 +49,10 @@ var TM_UI = (function () {
     opts = opts || {};
     var idx = stages.findIndex(function (s) { return s.key === currentKey; });
     if (currentKey === "closed") idx = stages.length - 1;
-    var out = '<div class="rail" role="list" aria-label="정산 진행 단계">';
+    var out = '<div class="rail" role="group" aria-label="정산 진행 단계">';
     stages.forEach(function (s, i) {
       var cls = i < idx ? "done" : i === idx ? "current" : "";
-      out += '<div class="rail-step ' + cls + '" role="listitem" tabindex="0">' +
+      out += '<div class="rail-step ' + cls + '" tabindex="0">' +
         (s.sla ? '<span class="rail-sla">SLA 시작</span>' : "") +
         '<span class="rail-dot" aria-hidden="true"></span><span>' + esc(s.label) + '</span><span class="cond">' + esc(s.cond) + "</span></div>";
       if (i < stages.length - 1) out += '<span class="rail-line" aria-hidden="true"></span>';
@@ -75,12 +75,21 @@ var TM_UI = (function () {
     return allowed.indexOf(s) >= 0 ? s : defaultState;
   }
 
+  // 클래스 토큰 단위로 본다. pass-body·stamp-inline 같은 보조 클래스는 모티프로 세지 않는다.
   function motifKinds(html) {
+    function has(html, cls) { return new RegExp('class="(?:[^"]*\\s)?' + cls + '(?:\\s[^"]*)?"').test(html); }
     var kinds = [];
-    if (/class="pass\b/.test(html)) kinds.push("pass");
-    if (/class="stamp\b/.test(html)) kinds.push("stamp");
-    if (/class="tag\b/.test(html)) kinds.push("tag");
+    if (has(html, "pass")) kinds.push("pass");
+    if (has(html, "stamp")) kinds.push("stamp");
+    if (has(html, "tag")) kinds.push("tag");
     return kinds;
+  }
+
+  // 좁은 화면에서 가로 스크롤되는 레일의 현재 단계를 보이는 곳으로 옮긴다.
+  function revealRail() {
+    if (typeof document === "undefined") return;
+    var cur = document.querySelector(".rail-step.current");
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ inline: "center", block: "nearest" });
   }
 
   // 모달 접근성: Escape로 닫고 Tab 포커스를 모달 안에 가둔다. 첫 포커스 가능 요소로 포커스를 옮기고, 해제 함수를 돌려준다.
@@ -104,6 +113,6 @@ var TM_UI = (function () {
     return function release() { root.removeEventListener("keydown", handler); };
   }
 
-  return { esc: esc, js: js, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, trapModal: trapModal, STAMPS: STAMPS, TAGS: TAGS };
+  return { esc: esc, js: js, won: won, money: money, stamp: stamp, tag: tag, pass: pass, rail: rail, pill: pill, btn: btn, mocknav: mocknav, stateFromUrl: stateFromUrl, motifKinds: motifKinds, revealRail: revealRail, trapModal: trapModal, STAMPS: STAMPS, TAGS: TAGS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = TM_UI;

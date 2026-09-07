@@ -1,3 +1,4 @@
+// docs/design/mockups/tests/tokens.test.cjs
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -48,6 +49,12 @@ test("필수 컴포넌트 클래스가 정의된다", () => {
     ".stamp.organizer", ".stamp.locked", ".tag.verified", ".tag.deleted", ".feature.navy", ".mocknav", ".sr-only", ".band-paper"]) {
     assert.ok(c.includes(cls), `${cls} 없음`);
   }
+});
+
+test("터치 대상: 탭과 레일 단계는 44px 이상", () => {
+  const c = css();
+  assert.match(c, /\.tabs \.pill\s*\{[^}]*min-height\s*:\s*44px/s);
+  assert.match(c, /\.rail-step\s*\{[^}]*min-height\s*:\s*44px/s);
 });
 
 test("포커스 링은 호박색 3px", () => {

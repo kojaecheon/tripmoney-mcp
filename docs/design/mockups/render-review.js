@@ -108,7 +108,7 @@ var TM_RENDER_REVIEW = (function () {
   }
   function render(d, key) { return renderState(d, d.scenes.review[key]); }
 
-  function mount(html) { document.getElementById("app").innerHTML = html; }
+  function mount(html) { document.getElementById("app").innerHTML = html; U.revealRail(); }
   function toast(msg) { var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
   function approve() {
     var st = JSON.parse(JSON.stringify(current));
@@ -117,7 +117,7 @@ var TM_RENDER_REVIEW = (function () {
     st.decisions = TM_DATA.members.filter(function (m) { return m.role !== "organizer"; }).map(function (m) { return { member_id: m.id, decision: "not_responded" }; });
     mount(renderState(TM_DATA, st)); toast("v" + st.version + " 승인 · 참여자 검토창이 열렸습니다");
   }
-  function requestRevision(ev) { ev.preventDefault(); var f = ev.target; var msg = f.querySelector(".form-msg"); if (!f.note.value.trim()) { msg.textContent = "바꿀 내용을 적어 주세요"; return false; } msg.style.color = "var(--green)"; msg.textContent = "수정 요청을 보냈습니다 (목업)"; return false; }
+  function requestRevision(ev) { ev.preventDefault(); var f = ev.target; var msg = f.querySelector(".form-msg"); msg.style.color = ""; if (!f.note.value.trim()) { msg.textContent = "바꿀 내용을 적어 주세요"; return false; } msg.style.color = "var(--green)"; msg.textContent = "수정 요청을 보냈습니다 (목업)"; return false; }
   function requestLock() { toast("잠금 요청을 보냈습니다. 내부 QA 후 잠깁니다 (목업)"); }
   function copyText(text) { if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {}); toast("복사했습니다: " + text); }
   function preview() {

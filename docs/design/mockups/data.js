@@ -120,9 +120,10 @@ var TM_DATA = (function () {
         { label: "원본 목록 수집", ok: true, note: null },
         { label: "OCR 검수", ok: false, note: "2건 남음" },
         { label: "정산 초안 불변식", ok: false, note: "미상 결제자 1건" }
-      ] },
+      ], objection_list: [] },
     { id: "C-013", trip_name: "다낭 3박", product: "검수형", stage: "collecting", sla_hours_left: null, paused_reason: "고객 답변 대기", next_action: "결제자 확인 답변 대기", blockers: [], checklist: [] },
-    { id: "C-012", trip_name: "오사카 2박", product: "검수형", stage: "participant_review", sla_hours_left: null, paused_reason: null, next_action: "이의 1건 확인", blockers: [], checklist: [], objections: 1 }
+    { id: "C-012", trip_name: "오사카 2박", product: "검수형", stage: "participant_review", sla_hours_left: null, paused_reason: null, next_action: "이의 1건 확인", blockers: [], checklist: [], objections: 1,
+      objection_list: [{ alias: "지수", reason: "호텔비 분담 인원이 다릅니다", status: "open", resolution: null }] }
   ];
 
   var invariants = [

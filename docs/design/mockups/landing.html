@@ -20,6 +20,7 @@
   var s = TM_UI.stateFromUrl("intake_on", states);
   document.getElementById("mocknav").innerHTML = TM_UI.mocknav("landing", states, s);
   document.getElementById("app").innerHTML = TM_RENDER_LANDING.render(TM_DATA, s);
+  TM_UI.revealRail();
 })();
 </script>
 </body>
