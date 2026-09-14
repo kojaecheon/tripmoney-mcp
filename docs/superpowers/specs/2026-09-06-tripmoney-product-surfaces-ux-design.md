@@ -352,7 +352,7 @@ docs/design/
 - 페이지 간 이동은 허브와 각 페이지 상단의 작은 이동 막대로 제공한다. 이 이동 막대는 목업 전용이며 실제 화면 설계의 일부가 아니다.
 - `components.js`는 여정 레일, 서류 컴포넌트 3종, 버튼과 도우미를 순수 함수로 담고, `render-*.js`는 화면별 렌더 함수를 담는다. 모든 스크립트는 브라우저 전역과 CommonJS 내보내기를 함께 제공한다.
 - `tests/`는 Node 내장 테스트 러너로 토큰 값, 정산 불변식, 모티프 예산, 채운 버튼 수, 헤딩 구조, 대비 AA를 자동 검사한다. 실행 명령은 `node --test docs/design/mockups/tests/*.test.cjs`이다.
-- `mockups/package.json`은 `{"type":"commonjs"}` 한 줄이다. 저장소 루트 `package.json`이 `"type":"module"`이라 이 디렉터리의 `.js`를 Node가 CommonJS로 읽게 하며, 브라우저에는 영향이 없다.
+- `mockups/package.json`은 `{"type":"commonjs","private":true}` 한 줄이다. 저장소 루트 `package.json`이 `"type":"module"`이라 이 디렉터리의 `.js`를 Node가 CommonJS로 읽게 하며, 브라우저에는 영향이 없다.
 
 ### 6.2 합성 데이터
 
