@@ -5,6 +5,8 @@
   "type": "module",
   "description": "TripMoney MCP 서버 — 여행 일정/비용 공유 및 정산",
   "scripts": {
+    "mvp": "node mvp/server.mjs",
+    "test:mvp": "node --test mvp/tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx test/logic.test.ts",
     "smoke:mcp": "tsx test/mcp.smoke.ts",
