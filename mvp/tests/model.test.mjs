@@ -38,6 +38,28 @@ test('잔여 1원 배분은 저장된 분담 배열 순서가 아니라 고정 �
   assert.deepEqual(model.calculate(state), model.calculate(fresh()));
 });
 
+test('초기 또는 저장된 분담 순서만 달라도 무변경 저장은 승인과 검토 상태를 유지한다', () => {
+  for (const fromStorage of [false, true]) {
+    const reversedSeed = structuredClone(seed);
+    if (!fromStorage) reversedSeed.expenses[0].split_ids.reverse();
+    let state = model.approveOrganizer(model.createState(reversedSeed), 1, at);
+    state = model.decideParticipant(state, 'b', 'approved', null, 1, at);
+    state = model.markQa(state, 1, at);
+    state = model.closeReview(state, 1, at);
+    if (fromStorage) {
+      state.expenses[0].splitIds.reverse();
+      state = model.createStore(seed, { getItem: () => JSON.stringify(state), removeItem() {} }).load();
+    }
+    const next = model.updateExpense(state, 'e1', { amount: '101', payerId: 'a', splitIds: ['a', 'b', 'c'] }, 1, at);
+    assert.equal(next.version, 1);
+    assert.equal(next.organizerApprovedAt, at);
+    assert.equal(next.decisions.b.status, 'approved');
+    assert.equal(next.qaAt, at);
+    assert.equal(next.reviewClosedAt, at);
+    assert.deepEqual(next, state);
+  }
+});
+
 test('지출 수정은 새 버전을 만들고 기존 승인과 이의를 무효화한다', () => {
   assert.equal(typeof model.updateExpense, 'function');
   let state = model.approveOrganizer(fresh(), 1, at);
@@ -97,6 +119,14 @@ test('검수와 검토 종료 없이는 잠글 수 없고 종료 후 무응답�
   const locked = model.finalize(state, 1, at);
   assert.equal(locked.lockedAt, at);
   assert.throws(() => model.updateExpense(locked, 'e1', { amount: '200', payerId: 'a', splitIds: ['a'] }, 1, at), /잠금/);
+});
+
+test('같은 버전의 검수 재요청은 최초 시각과 이력을 유지한다', () => {
+  const state = model.markQa(fresh(), 1, at);
+  const repeated = model.markQa(state, 1, '2026-10-08T00:01:00.000Z');
+  assert.equal(repeated.qaAt, at);
+  assert.equal(repeated.history.length, 1);
+  assert.deepEqual(repeated, state);
 });
 
 test('참여자 결과는 본인 금액과 본인 관련 송금만 제공한다', () => {

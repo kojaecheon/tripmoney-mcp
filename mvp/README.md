@@ -16,6 +16,8 @@ npm run mvp
 - 종료: 실행한 터미널에서 `Ctrl+C`.
 - 코드 위치: `/Users/macddiwoo/Documents/Claude/Projects/Tripmoney/mvp`.
 
+Claude 로그인은 MVP 실행 조건이 아니다. Codex가 구현한 코드를 Claude CLI에 독립 검토하도록 요청할 때만 필요하며, TripMoney 화면이나 서버가 Claude 계정을 사용하지 않는다. 검토에는 합성 소스와 테스트만 제공하고 인증키·고객정보는 제외한다.
+
 ## 3분 체험 순서
 
 1. 운영자: 공항 택시 금액을 `450`에서 `500`으로 변경하고 재계산한다. 합계는 547,052원에서 548,982원으로 바뀐다. 결제자와 분담 대상도 변경할 수 있다.

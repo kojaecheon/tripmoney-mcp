@@ -8,9 +8,9 @@ import { renderView } from '../view.mjs';
 const data = createRequire(import.meta.url)('../../docs/design/mockups/data.js');
 const at = '2026-10-08T00:00:00.000Z';
 
-function appHarness() {
+function appHarness(providedStorage) {
   const values = new Map(), events = new Map(), windowEvents = new Map();
-  const storage = { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v), removeItem: k => values.delete(k) };
+  const storage = providedStorage ?? { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v), removeItem: k => values.delete(k) };
   let html = '', renders = 0;
   const main = { get innerHTML() { return html; }, set innerHTML(value) { html = value; renders++; } };
   const feedback = { textContent: '', classList: { toggle() {} }, setAttribute() {} };
@@ -29,6 +29,13 @@ function appHarness() {
   });
   return { events, windowEvents, storage, main, feedback, get renders() { return renders; } };
 }
+
+test('샘플 복구와 저장 불가가 동시에 발생하면 두 상태를 모두 안내한다', () => {
+  const app = appHarness({ getItem: () => '{invalid', removeItem() { throw Error('blocked'); } });
+  assert.match(app.feedback.textContent, /손상.*복구/);
+  assert.match(app.feedback.textContent, /브라우저 저장을 사용할 수 없습니다/);
+  assert.match(app.main.innerHTML, /data-version="1"/);
+});
 
 test('다른 탭의 같은 버전 승인은 작성 중 지출 입력을 덮지 않는다', () => {
   const app = appHarness();

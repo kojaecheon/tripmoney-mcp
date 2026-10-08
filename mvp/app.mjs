@@ -129,5 +129,7 @@ window.addEventListener('storage', event => {
 });
 
 render();
-if (store.status().recovered) message('저장된 샘플이 손상되었거나 형식이 달라 초기 상태로 복구했습니다.', true);
-if (!store.status().persistent) message('브라우저 저장을 사용할 수 없습니다. 현재 화면에서만 유지됩니다.', true);
+const initialStatus = store.status(), initialMessages = [];
+if (initialStatus.recovered) initialMessages.push('저장된 샘플이 손상되었거나 형식이 달라 초기 상태로 복구했습니다.');
+if (!initialStatus.persistent) initialMessages.push('브라우저 저장을 사용할 수 없습니다. 현재 화면에서만 유지됩니다.');
+if (initialMessages.length) message(initialMessages.join(' '), true);

@@ -87,7 +87,8 @@ export function updateExpense(state, id, patch, version, at) {
   if (!baseAmount(expense)) fail('원화 환산액이 1원 이상이어야 합니다.');
   expense.payerId = patch.payerId;
   expense.splitIds = next.members.filter(m => patch.splitIds.includes(m.id)).map(m => m.id);
-  if (JSON.stringify(expense) === JSON.stringify(state.expenses.find(e => e.id === id))) return clone(state);
+  const original = state.expenses.find(e => e.id === id);
+  if (expense.amountCents === original.amountCents && expense.payerId === original.payerId && expense.splitIds.length === original.splitIds.length && expense.splitIds.every(memberId => original.splitIds.includes(memberId))) return clone(state);
   next.version++;
   next.organizerApprovedAt = next.reviewClosedAt = next.qaAt = next.lockedAt = null;
   next.decisions = emptyDecisions(next.members);
@@ -132,6 +133,7 @@ export function withdrawObjection(state, id, version, at) {
 
 export function markQa(state, version, at) {
   editable(state, version);
+  if (state.qaAt) return clone(state);
   calculate(state);
   const next = clone(state); next.qaAt = at;
   return record(next, 'qa_confirmed', at);

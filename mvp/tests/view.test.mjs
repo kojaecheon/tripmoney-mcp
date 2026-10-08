@@ -20,6 +20,15 @@ test('운영 화면은 지출 수정 폼과 12개 합성 지출을 제공한다'
   assert.equal((html.match(/data-expense-id=/g) || []).length, 12);
 });
 
+test('통화 표시는 HTML 요소로 해석하지 않고 텍스트로 표시한다', () => {
+  const state = createState(data);
+  state.expenses[0].currency = '<b>THB</b>';
+  const html = renderView(state, 'operator', 'm_jieun', state.expenses[0].id);
+  assert.match(html, /금액 \(&lt;b&gt;THB&lt;\/b&gt;\)/);
+  assert.match(html, /&lt;b&gt;THB&lt;\/b&gt; ·/);
+  assert.doesNotMatch(html, /<b>THB<\/b>/);
+});
+
 test('모바일 카드가 표의 최소 너비와 관계없이 화면 안에서 축소된다', () => {
   const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.mvp-main\s*>\s*\*\s*\{[^}]*min-width:0/);
