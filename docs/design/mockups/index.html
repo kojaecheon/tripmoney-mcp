@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TripMoney 제품 표면 목업 허브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="tokens.css">
+<style>.scene-list{list-style:none;display:grid;gap:6px;font-size:14px}.scene-list a{color:inherit}</style>
+</head>
+<body>
+<main class="shell section">
+  <p class="eyebrow">TripMoney · 설계 목업</p>
+  <h1>제품 표면 목업 허브</h1>
+  <p class="lead" style="margin:12px 0 32px">네 표면과 열한 장면을 합성 데이터로 보여줍니다. 프로덕션 코드가 아닙니다. 설계 문서는 <code>docs/superpowers/specs/2026-09-06-tripmoney-product-surfaces-ux-design.md</code>입니다.</p>
+  <div class="grid-2">
+    <article class="feature lavender"><h2>공개 랜딩</h2><p>고객이 처음 보는 화면. 양쪽 기기 대응.</p>
+      <ul class="scene-list fragment"><li><a href="landing.html?state=intake_on">intake_on · 신청 폼 활성</a></li><li><a href="landing.html?state=intake_off">intake_off · 접수 비활성 안내</a></li></ul></article>
+    <article class="feature peach"><h2>총무 검토</h2><p>총무가 초안을 승인하고 잠금을 요청하는 화면. 모바일 우선.</p>
+      <ul class="scene-list fragment"><li><a href="review.html?state=awaiting_organizer">awaiting_organizer · 승인 대기</a></li><li><a href="review.html?state=participant_review">participant_review · 검토창 진행</a></li><li><a href="review.html?state=finalized">finalized · 잠금 완료</a></li></ul></article>
+    <article class="feature mint"><h2>참여자 공유</h2><p>참여자가 본인 몫만 확인하고 결정하는 화면. 모바일 우선.</p>
+      <ul class="scene-list fragment"><li><a href="share.html?state=notice">notice · 첫 고지</a></li><li><a href="share.html?state=active">active · 본인 결과</a></li><li><a href="share.html?state=expired">expired · 만료 안내</a></li></ul></article>
+    <article class="feature ochre"><h2>운영자 워크벤치</h2><p>직원이 케이스를 검수하고 잠그는 화면. 데스크톱 우선.</p>
+      <ul class="scene-list fragment"><li><a href="operator.html?state=queue">queue · 케이스 큐</a></li><li><a href="operator.html?state=case">case · 검수 중 상세</a></li><li><a href="operator.html?state=login">login · 로그인</a></li></ul></article>
+  </div>
+  <p class="caption" style="margin-top:32px">자동 검사: <code>node --test docs/design/mockups/tests/*.test.cjs</code></p>
+</main>
+</body>
+</html>
