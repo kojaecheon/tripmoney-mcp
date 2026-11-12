@@ -82,13 +82,16 @@ export function createRecommendationService({identityService,ledgerService,place
    if(trip.id!==tripId)throw new IdentityError('not_found','여행을 찾을 수 없습니다.');
    if(!['owner','editor'].includes(trip.role)||trip.revision!==ledger.revision)throw conflict();
    const clean=request(raw);
-   if(provider.source!=='synthetic'&&provider.source!=='claude')return invalid('source');
+   if(provider.source!=='synthetic'&&provider.source!=='claude'&&provider.source!=='gemini')return invalid('source');
    for(const [id,row]of drafts)if(Date.parse(row.draft.expiresAt)<=now())drafts.delete(id);
    if(drafts.size>=500)throw new IdentityError('unavailable','보관 중인 추천이 많습니다. 잠시 뒤 다시 시도해 주세요.');
    await reserve(actor,tripId,ledger.timeZone);
    let output: unknown;
    try{output=await provider.generate({destination:trip.destination,startDate:ledger.startDate,endDate:ledger.endDate,timeZone:ledger.timeZone,memberCount:trip.memberCount,budgetKrw:ledger.budgetKrw,interests:clean.interests,pace:clean.pace});}
-   catch{throw new IdentityError('unavailable','추천을 만들지 못했습니다. 다시 시도해 주세요.');}
+   catch(error){
+    if(provider.source==='gemini'&&error instanceof IdentityError&&['validation','rate_limited'].includes(error.code))throw error;
+    throw new IdentityError('unavailable','추천을 만들지 못했습니다. 다시 시도해 주세요.');
+   }
    safe(output);const rawItems=record(output).items;
    if(!Array.isArray(rawItems)||rawItems.length<1||rawItems.length>60)return invalid('items');
    let total=0;

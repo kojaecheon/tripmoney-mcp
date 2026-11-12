@@ -8,9 +8,9 @@ import {createLocalRuntime} from '../../server/local/runtime.js';
 import {createCustomerAuthServer} from '../../server/http/server.js';
 import {readHttpConfig} from '../../server/http/config.js';
 
-async function fixture(t:TestContext) {
+async function fixture(t:TestContext, options?: {geminiTrial: {apiKey: string; fetcher: typeof fetch}}) {
   let clock=Date.now();
-  const runtime=createLocalRuntime({now:()=>clock});
+  const runtime=createLocalRuntime({now:()=>clock,...options});
   const server=createCustomerAuthServer({config:readHttpConfig({publicOrigin:'http://127.0.0.1:8125',clientKey:randomBytes(32)}),...runtime});
   server.listen(0,'127.0.0.1');await once(server,'listening');
   t.after(async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));runtime.close();});
@@ -30,6 +30,44 @@ async function fixture(t:TestContext) {
     budgetKrw:100000,alias:'나',settlementMode:'daily',dailyTime:'20:00',operationId:randomUUID()})).body.value.trip;
   return {send,trip,account,login,advance(ms:number){clock+=ms;}};
 }
+
+test('the local Gemini trial sends only the fixed fictional trip once and returns a draft without saving', async t => {
+  const input = {date:'2026-12-12',startTime:'10:00',endTime:'12:00',title:'시장 산책',place:'부산 국제시장',budgetKrw:20000,placeRef:null};
+  const requests: {url: string; init?: RequestInit}[] = [];
+  const {send,trip} = await fixture(t, {geminiTrial:{
+    apiKey:'AQ.fixture-gemini-key',
+    async fetcher(url, init) {
+      requests.push({url:String(url),init});
+      const json = JSON.stringify({items:[{input,reason:'가상 여행의 시장 산책 후보입니다.'}]});
+      return Response.json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[
+        {text:json.slice(0,20)}, {text:json.slice(20)},
+      ]}}]});
+    },
+  }});
+  const request = {interests:['시장','산책'],pace:'relaxed',expectedRevision:1};
+  const unrelated = await send(`/api/customer/trips/${trip.id}/recommendations`, request);
+  assert.notEqual(unrelated.status, 200);
+  assert.equal(requests.length, 0);
+  const created = await send('/api/customer/trips', {name:'Gemini 가상 시험',destination:'부산',startDate:input.date,endDate:input.date,
+    timeZone:'Asia/Seoul',budgetKrw:60000,alias:'시험 참가자',settlementMode:'daily',dailyTime:'20:00',operationId:randomUUID()});
+  assert.equal(created.status, 200);
+  const base = `/api/customer/trips/${created.body.value.trip.id}`;
+  const results = await Promise.all([send(base+'/recommendations',request), send(base+'/recommendations',request)]);
+  const success = results.find(result => result.status === 200);
+  assert.equal(results.filter(result => result.status === 200).length, 1);
+  assert.equal(success?.body.recommendation.source, 'gemini');
+  assert.deepEqual(success?.body.recommendation.items.map((item:{input: unknown;placeStatus: string}) => [item.input,item.placeStatus]), [[input,'unverified']]);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent');
+  const headers = new Headers(requests[0]?.init?.headers);
+  assert.equal(headers.get('x-goog-api-key'), 'AQ.fixture-gemini-key');
+  const body = String(requests[0]?.init?.body);
+  assert.doesNotMatch(body, /fixture-gemini-key|owner@example.invalid|시험 참가자|Gemini 가상 시험/);
+  assert.equal(JSON.parse(body).tools, undefined);
+  const ledger = (await send(base+'/ledger')).body.ledger;
+  assert.equal(ledger.items.length, 0);
+  assert.equal(ledger.revision, 1);
+});
 
 test('recommendation HTTP adopts only selected server candidates once and binds the account',async t=>{
   const {send,trip,account}=await fixture(t),base=`/api/customer/trips/${trip.id}`;

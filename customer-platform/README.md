@@ -14,6 +14,20 @@ npm run start:local
 
 [로컬 체험 화면](http://127.0.0.1:8125/)에서 `owner@example.invalid`와 인증번호 `123456`으로 로그인한다. 별도 브라우저에서 다른 `example.invalid` 주소로 로그인하면 동행자 초대를 체험할 수 있다. 이 모드는 메모리에 저장하며 서버를 종료하면 초기화된다. 지도, 추천, 카카오 체험에는 합성 데이터를 사용한다.
 
+## Gemini 무료 등급 시험
+
+[Google AI Studio](https://aistudio.google.com/api-keys)에서 결제 등급이 **무료 등급**인 프로젝트의 인증 키(Auth key)를 확인한다. 키 자체로는 무료 등급을 판별할 수 없다. macOS의 zsh에서는 다음 명령으로 키를 화면에 표시하지 않고 입력할 수 있다.
+
+```zsh
+read -rs 'tripmoney_trial_key?Gemini 무료 API 키: '
+TRIPMONEY_GEMINI_API_KEY="$tripmoney_trial_key" npm run start:local -- --gemini-free-trial
+unset tripmoney_trial_key
+```
+
+로컬 화면에서 부산 여행을 만든다. 날짜는 시작과 종료 모두 2026-12-12, 시간대는 Asia/Seoul, 예산은 60,000원, 참가자는 본인 1명이다. 여행 일정 추천에서 관심사에 `시장, 산책`을 입력하고 여행 속도를 `여유롭게`로 선택한다.
+
+추천을 누르면 Gemini 3.1 Flash-Lite에 가상 데이터만 전송하며, 서버 실행당 최대 한 번 시도한다. 응답은 후보로 표시되고 선택한 후보를 저장할 때 일정에 반영된다.
+
 ## 검증
 
 ```sh
