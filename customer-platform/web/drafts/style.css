@@ -1,0 +1,7 @@
+.drafts-panel { margin-block: 1rem; min-width: 0; }
+.drafts-panel textarea { box-sizing: border-box; width: 100%; min-height: 5rem; resize: vertical; }
+.drafts-panel :is(p, h3, h4) { overflow-wrap: anywhere; }
+.drafts-result { margin-block-start: 1rem; }
+.drafts-preview { white-space: pre-wrap; }
+.drafts-panel button { min-height: 44px; white-space: normal; }
+@media (max-width: 540px) { .drafts-panel button { width: 100%; } }

@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+coverage/
+dist/
+supabase/.temp/
+.auth-db-test-manifest.jsonl
+.durable-db-test-manifest.jsonl
+
+.customer-live/
