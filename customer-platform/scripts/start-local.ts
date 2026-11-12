@@ -2,7 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { readHttpConfig } from '../server/http/config.js';
 import { createCustomerAuthServer } from '../server/http/server.js';
 import { createLocalRuntime } from '../server/local/runtime.js';
-const runtime = createLocalRuntime();
+const geminiTrial = process.argv.includes('--gemini-free-trial')
+  ? {apiKey: process.env.TRIPMONEY_GEMINI_API_KEY ?? ''}
+  : undefined;
+delete process.env.TRIPMONEY_GEMINI_API_KEY;
+const runtime = createLocalRuntime({geminiTrial});
 const server = createCustomerAuthServer({
   config: readHttpConfig({ publicOrigin: 'http://127.0.0.1:8125', clientKey: randomBytes(32) }),
   authService: runtime.authService,

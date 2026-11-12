@@ -10,20 +10,26 @@ export type LiveProviderConfig = {
 export const providerUnavailable=()=>new IdentityError('unavailable','외부 제공자를 사용할 수 없습니다. 잠시 뒤 다시 시도해 주세요.');
 export const isRecord=(v:unknown):v is Record<string,unknown>=>Boolean(v&&typeof v==='object'&&!Array.isArray(v));
 export const safeText=(v:unknown,max:number,empty=false):v is string=>typeof v==='string'&&(empty||v.trim().length>0)&&v.length<=max&&!/\p{Cc}/u.test(v);
-export function configured(config:LiveProviderConfig):boolean {
+export const validGeminiKey=(value:string):boolean=>/^[A-Za-z0-9._-]{8,256}$/.test(value);
+export function configured(config:LiveProviderConfig, provider?:keyof typeof providerHosts):boolean {
  return config.allowNetwork===true&&typeof config.fetcher==='function'&&typeof config.usageStore?.reserve==='function'&&
-  typeof config.apiKey==='string'&&/^[A-Za-z0-9_-]{8,256}$/.test(config.apiKey)&&
+  typeof config.apiKey==='string'&&(provider==='gemini'?validGeminiKey(config.apiKey):/^[A-Za-z0-9_-]{8,256}$/.test(config.apiKey))&&
   typeof config.usageScope==='string'&&/^[A-Za-z0-9:_-]{1,120}$/.test(config.usageScope)&&
   Number.isSafeInteger(config.dailyLimit)&&config.dailyLimit>=1&&config.dailyLimit<=10000&&
   (config.timeoutMs===undefined||(Number.isSafeInteger(config.timeoutMs)&&config.timeoutMs>=10&&config.timeoutMs<=10000));
 }
+const providerHosts = {
+ google: ['places.googleapis.com', 'routes.googleapis.com'],
+ claude: ['api.anthropic.com'],
+ gemini: ['generativelanguage.googleapis.com'],
+};
 /** One reservation, one HTTP attempt, no retries. A deadline includes reservation and streamed reads. */
-export async function providerJson(config:LiveProviderConfig,provider:'google'|'claude',url:string,init:RequestInit):Promise<unknown> {
- if(!configured(config))throw providerUnavailable();
+export async function providerJson(config:LiveProviderConfig,provider:keyof typeof providerHosts,url:string,init:RequestInit):Promise<unknown> {
+ if(!configured(config,provider))throw providerUnavailable();
  // Endpoints are fixed by adapters; this second guard prevents accidental credential forwarding.
  const target=new URL(url);
  if(target.protocol!=='https:'||target.username||target.password||target.port||target.hash||
-  !(provider==='google'?['places.googleapis.com','routes.googleapis.com']:['api.anthropic.com']).includes(target.hostname))throw providerUnavailable();
+  !providerHosts[provider].includes(target.hostname))throw providerUnavailable();
  const body=init.body;if(body!==undefined&&(typeof body!=='string'||Buffer.byteLength(body)>65536))throw providerUnavailable();
  const controller=new AbortController();let active=true,reader:ReadableStreamDefaultReader<Uint8Array>|undefined,timer:ReturnType<typeof setTimeout>|undefined;
  const deadline=new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>{active=false;controller.abort();void reader?.cancel().catch(()=>{});reject(providerUnavailable());},config.timeoutMs??5000);});

@@ -14,9 +14,14 @@ import {createDraftService} from '../drafts/service.js';
 import {createSyntheticAiProvider} from '../ai/synthetic.js';
 import {createRecommendationService} from '../recommendation/service.js';
 import {createSyntheticRecommendationProvider} from '../ai/synthetic-recommendation.js';
+import {createGeminiTrial} from '../ai/gemini-trial.js';
 import {createKakaoLocalService} from '../channels/kakao-local/service.js';
 import {createTripChangeNotifier,createTripChangesService,createNotifyingServices} from '../sync/service.js';
-export function createLocalRuntime({ now, publicOrigin = 'http://127.0.0.1:8125' }: { now?: () => number; publicOrigin?: string } = {}) {
+export function createLocalRuntime({ now, publicOrigin = 'http://127.0.0.1:8125', geminiTrial }: {
+  now?: () => number; publicOrigin?: string; geminiTrial?: Parameters<typeof createGeminiTrial>[0];
+} = {}) {
+  if (geminiTrial && publicOrigin !== 'http://127.0.0.1:8125') throw Error('Gemini 시험은 로컬 개발 서버에서 실행해 주세요.');
+  const recommendationProvider = geminiTrial ? createGeminiTrial(geminiTrial) : createSyntheticRecommendationProvider();
   const store = createLocalAuthStore({ now });
   const provider = createLocalAuthProvider({ now });
   const authService = createAuthService({ store, provider, kid: 'local', keys: { local: randomBytes(32) }, rateKey: randomBytes(32) });
@@ -28,7 +33,7 @@ export function createLocalRuntime({ now, publicOrigin = 'http://127.0.0.1:8125'
     ledgerService:createLedgerService({ repository: repositories.ledgerRepository })});
   const placeService=createPlaceService({ledgerService,provider:createSyntheticPlaceProvider()});
   const draftService=createDraftService({ledgerService,provider:createSyntheticAiProvider(),now:now?()=>new Date(now()):undefined});
-  const recommendationService=createRecommendationService({identityService,ledgerService,placeService,provider:createSyntheticRecommendationProvider(),now});
+  const recommendationService=createRecommendationService({identityService,ledgerService,placeService,provider:recommendationProvider,now});
   const kakaoLocalService=createKakaoLocalService({identityService,ledgerService,draftService,now});
   return { authService, identityService, ledgerService, placeService,draftService,recommendationService,kakaoLocalService,changesService,close() { changesService.close();kakaoLocalService.close();recommendationService.close();repositories.close(); store.close(); provider.close(); } };
 }

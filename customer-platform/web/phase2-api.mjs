@@ -27,7 +27,7 @@ export function createPhase2Api(call,{invalid,parseChange,parseTrip,parseDraft,p
     return {title:text(v.title,100),itineraryId:v.itineraryId===null?null:ledgerId(v.itineraryId),occurredLocal,currency:v.currency,amount,payerId:ledgerId(v.payerId),splitIds,refreshRate:v.refreshRate};
   }
   function recommendation(v,tripId,revision) {
-    if(!object(v)||v.tripId!==tripId||v.baseRevision!==revision||!['synthetic','claude'].includes(v.source)||!Array.isArray(v.items)||v.items.length<1||v.items.length>60||!Array.isArray(v.warnings)||v.warnings.length>20)invalid();
+    if(!object(v)||v.tripId!==tripId||v.baseRevision!==revision||!['synthetic','claude','gemini'].includes(v.source)||!Array.isArray(v.items)||v.items.length<1||v.items.length>60||!Array.isArray(v.warnings)||v.warnings.length>20)invalid();
     const items=v.items.map(row=>{
       if(!object(row)||!['synthetic','verified','unverified'].includes(row.placeStatus))invalid();
       return {id:ledgerId(row.id),input:schedule(row.input),reason:text(row.reason),placeStatus:row.placeStatus};
