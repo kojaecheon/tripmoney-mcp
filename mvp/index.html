@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>TripMoney 체험형 MVP</title>
+  <link rel="stylesheet" href="/assets/tokens.css">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/assets/data.js"></script>
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 이동</a>
+  <div class="demo-banner"><span class="demo-dot" aria-hidden="true"></span><span>합성 데이터 체험판입니다. 실제 고객정보·로그인·결제·업로드는 사용하지 않습니다.</span></div>
+  <header class="mvp-header shell-app">
+    <a class="brand" href="/" aria-label="TripMoney 체험 홈"><span class="brand-mark" aria-hidden="true">T</span><span>TripMoney<small>정산의 끝에, 근거를.</small></span></a>
+    <div class="header-actions"><span id="save-status" class="caption"></span><button class="btn btn-secondary" type="button" data-action="reset">샘플 초기화</button></div>
+  </header>
+  <div class="shell-app">
+    <nav class="role-nav" aria-label="체험 역할"><button type="button" data-role="operator" aria-current="page"><span class="num">01</span> 운영자 · 지출 수정</button><button type="button" data-role="organizer"><span class="num">02</span> 총무 · 결과 승인</button><button type="button" data-role="participant"><span class="num">03</span> 참여자 · 검토</button></nav>
+    <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+    <main id="main" class="mvp-main"></main>
+    <footer class="mvp-footer"><p>저장 위치: 이 브라우저의 합성 샘플 전용 저장소. 서버·DB로 데이터를 보내지 않습니다.</p><p>공유와 역할 전환은 같은 브라우저에서만 동작하는 시연입니다. 실제 고객용 운영 서비스가 아닙니다.</p></footer>
+  </div>
+  <dialog id="reset-dialog" aria-labelledby="reset-title"><form method="dialog"><h2 id="reset-title">샘플을 처음으로 돌릴까요?</h2><p>이 체험판에서 바꾼 합성 지출과 승인·이의 기록만 초기화합니다. 다른 저장소는 변경하지 않습니다.</p><div class="btn-row"><button class="btn btn-secondary" value="cancel">취소</button><button class="btn" type="button" data-action="confirm-reset">샘플 초기화</button></div></form></dialog>
+  <dialog id="copy-dialog" aria-labelledby="copy-title"><form method="dialog"><h2 id="copy-title">체험 링크</h2><p>자동 복사를 사용할 수 없습니다. 아래 링크를 직접 복사해 같은 브라우저에서 열어 주세요.</p><label class="field" for="copy-link-value">링크<textarea id="copy-link-value" class="input" readonly></textarea></label><button class="btn btn-secondary" value="close">닫기</button></form></dialog>
+  <noscript>체험형 MVP는 JavaScript가 필요합니다. 실제 정보를 입력하지 마세요.</noscript>
+</body>
+</html>

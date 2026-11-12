@@ -1,5 +1,22 @@
 # TripMoney MCP 서버
 
+현재 체험용 진입점은 합성 데이터 전용 MVP다. 실제 고객 데이터 접수나 운영 배포를 승인한 버전은 아니다.
+
+## 체험형 MVP 실행
+
+```bash
+npm run mvp
+```
+
+접속: [TripMoney MVP](http://127.0.0.1:8123/). 실행 서버는 로컬 컴퓨터에서만 접근할 수 있다.
+
+- 구현 범위: 지출 수정·재계산, 총무 승인, 참여자 승인·이의, 검토 종료·잠금, 새로고침 복원, 샘플 초기화.
+- 데이터: 기존 목업의 합성 멤버 5명, 지출 12건. 브라우저에만 저장하며 DB·OCR·결제·외부 공유를 사용하지 않는다.
+- 안내: [MVP 사용법](mvp/README.md), [축소 범위와 검증 기록](docs/superpowers/reviews/2026-10-08-tripmoney-experience-mvp-verification.md).
+- 기존 서비스: 아래 MCP·웹 데모·배포 설명은 기존 코드 안내다. 인증·개인정보·운영 경로 차단 등 신뢰 기반 작업은 미완료이므로 실제 고객 데이터로 실행하거나 배포하지 않는다.
+
+## 기존 MCP 구현
+
 여행 일정·비용을 공유하고 정산하는 **MCP(Model Context Protocol) 서버**.
 PlayMCP / LLM → TripMoney MCP → Supabase(Postgres) 흐름으로 동작한다.
 
