@@ -1,0 +1,30 @@
+{
+  "name": "tripmoney-customer-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start:local": "tsx scripts/start-local.ts",
+    "start:live": "tsx scripts/start-live.ts",
+    "test:http": "tsx --test --test-reporter=spec tests/http/*.test.ts",
+    "test:unit": "tsx --test --test-reporter=spec tests/unit/*.test.ts",
+    "setup:db": "tsx scripts/setup-db.ts",
+    "setup:db:auto": "tsx scripts/setup-db-auto.ts",
+    "setup:db:browser": "tsx scripts/setup-db-browser.ts",
+    "setup:provider": "tsx scripts/setup-provider-test.ts",
+    "test:db": "tsx scripts/test-db.ts",
+    "test:provider": "tsx scripts/test-provider-session.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

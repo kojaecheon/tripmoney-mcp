@@ -1,0 +1,2 @@
+#kakao-slot pre { overflow-wrap: anywhere; white-space: pre-wrap; padding: 1rem; border: 1px solid var(--line, #d7dfdb); border-radius: .75rem; background: var(--canvas, #f6f8f6); }
+#kakao-slot a { overflow-wrap: anywhere; }
