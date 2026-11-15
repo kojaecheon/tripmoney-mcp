@@ -4,6 +4,7 @@ import {once} from 'node:events';
 import {request} from 'node:http';
 import type {AddressInfo} from 'node:net';
 import {test,type TestContext} from 'node:test';
+import {createGeminiTrial} from '../../server/ai/gemini-trial.js';
 import {createLocalRuntime} from '../../server/local/runtime.js';
 import {createCustomerAuthServer} from '../../server/http/server.js';
 import {readHttpConfig} from '../../server/http/config.js';
@@ -67,6 +68,81 @@ test('the local Gemini trial sends only the fixed fictional trip once and return
   const ledger = (await send(base+'/ledger')).body.ledger;
   assert.equal(ledger.items.length, 0);
   assert.equal(ledger.revision, 1);
+});
+
+test('the Gemini trial sends the fictional three-day group and only saves selected dates', async t => {
+  const items = ['2026-12-12', '2026-12-13', '2026-12-14'].map((date, index) => ({
+    input: {date, startTime:'10:00', endTime:'12:00', title:`부산 일정 ${index + 1}`, place:'부산', budgetKrw:30000, placeRef:null},
+    reason:'가상 여행의 후보입니다.',
+  }));
+  const payloads: {contents: {parts: {text: string}[]}[]; generationConfig: {responseJsonSchema: unknown}}[] = [];
+  const {send, login} = await fixture(t, {geminiTrial: {
+    apiKey:'AQ.fixture-gemini-key',
+    async fetcher(_url, init) {
+      payloads.push(JSON.parse(String(init?.body)));
+      return Response.json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({items})}]}}]});
+    },
+  }});
+  const created = await send('/api/customer/trips', {name:'로컬 가상 일행 시험',destination:'부산',startDate:'2026-12-12',endDate:'2026-12-14',
+    timeZone:'Asia/Seoul',budgetKrw:120000,alias:'시험 소유자',settlementMode:'daily',dailyTime:'20:00',operationId:randomUUID()});
+  assert.equal(created.status, 200);
+  const base = `/api/customer/trips/${created.body.value.trip.id}`;
+  const interests = ['시장','바다'];
+  assert.equal((await send(base+'/recommendations',{interests,pace:'balanced',expectedRevision:1})).status,422);
+  assert.equal(payloads.length,0);
+  const issued = await send(base+'/invites',{role:'editor',expectedRevision:1,operationId:randomUUID()});
+  assert.equal(issued.status,200);
+  const token = new URLSearchParams(new URL(issued.body.value.url).hash.slice(1)).get('t');
+  await send('/api/customer/auth/logout',{});
+  const editor = await login('group-editor@example.invalid');
+  assert.equal((await send('/api/customer/invites/accept',{token,alias:'시험 동행자',operationId:randomUUID()})).status,200);
+  assert.equal((await send(base+'/recommendations',{interests:['시험 개인 입력'],pace:'balanced',expectedRevision:3})).status,422);
+  assert.equal(payloads.length,0);
+  const generated = await send(base+'/recommendations',{interests,pace:'balanced',expectedRevision:3});
+  assert.equal(generated.status,200);
+  const draft = generated.body.recommendation;
+  assert.equal(draft.source,'gemini');
+  assert.deepEqual(draft.items.map((item:{input:{date:string};placeStatus:string})=>[item.input.date,item.placeStatus]),
+    items.map(({input})=>[input.date,'unverified']));
+  assert.equal(payloads.length,1);
+  const prompt = payloads[0]!.contents[0]!.parts[0]!.text;
+  assert.deepEqual(JSON.parse(prompt.slice(prompt.indexOf('{'))),{destination:'부산',startDate:'2026-12-12',endDate:'2026-12-14',
+    timeZone:'Asia/Seoul',memberCount:2,budgetKrw:120000,interests,pace:'balanced'});
+  assert.equal(prompt.includes(editor),false);
+  assert.equal(prompt.includes(created.body.value.trip.id),false);
+  assert.doesNotMatch(prompt,/개인 입력|로컬 가상 일행 시험|시험 동행자|@example/);
+  assert.equal((await send(base+'/ledger')).body.ledger.items.length,0);
+  const selection = {selectedIds:[draft.items[0].id,draft.items[2].id],operationId:randomUUID()};
+  const adoption = `${base}/recommendations/${draft.id}/adopt`;
+  assert.equal((await send(adoption,selection)).status,200);
+  assert.equal((await send(adoption,selection)).body.replayed,true);
+  const ledger = (await send(base+'/ledger')).body.ledger;
+  assert.deepEqual(ledger.items.map((item:{date:string})=>item.date).sort(),['2026-12-12','2026-12-14']);
+  assert.equal(payloads.length,1);
+});
+
+test('the Gemini group rejects repeated dates and fabricated place references', async () => {
+  const context = {destination:'부산',startDate:'2026-12-12',endDate:'2026-12-14',timeZone:'Asia/Seoul',
+    memberCount:2,budgetKrw:120000,interests:['시장','바다'],pace:'balanced' as const};
+  for (const [dates, placeRef] of [
+    [['2026-12-12','2026-12-12','2026-12-14'], null],
+    [['2026-12-12','2026-12-13','2026-12-14'], {provider:'google',placeId:'invented'}],
+  ] as const) {
+    const provider = createGeminiTrial({apiKey:'AQ.fixture-gemini-key', async fetcher() {
+      const items = dates.map(date=>({input:{date,placeRef},reason:'가상 후보'}));
+      return Response.json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({items})}]}}]});
+    }});
+    await assert.rejects(provider.generate(context),{code:'unavailable'});
+  }
+});
+
+test('the Gemini trial can use another loopback port and rejects external origins', () => {
+  const geminiTrial = {apiKey:'AQ.fixture-gemini-key'};
+  const runtime = createLocalRuntime({publicOrigin:'http://127.0.0.1:8130',geminiTrial});
+  runtime.close();
+  for (const publicOrigin of ['https://example.invalid','http://127.0.0.1:8130/path','http://127.0.0.10:8130']) {
+    assert.throws(()=>createLocalRuntime({publicOrigin,geminiTrial}),/로컬 개발 서버/);
+  }
 });
 
 test('recommendation HTTP adopts only selected server candidates once and binds the account',async t=>{
