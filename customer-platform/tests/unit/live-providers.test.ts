@@ -58,9 +58,10 @@ test('Google resolves IDs without storing display data and computes ordered repe
  const before=f.requests.length;assert.equal((await provider.route(Array(13).fill(ref),'walking') as any).status,'unsupported');assert.equal(f.requests.length,before);
 });
 test('Google maps empty routes to unsupported, malformed geometry to safe error and never retries upstream failure',async()=>{
- for(const response of [{routes:[]},{routes:[{polyline:{geoJsonLinestring:{type:'LineString',coordinates:[[0,99],[1,1]]}}}]}]){
+ for(const [response,status] of [[{},'unsupported'],[{routes:[]},'unsupported'],[{routes:null},'error'],
+  [{routes:[{polyline:{geoJsonLinestring:{type:'LineString',coordinates:[[0,99],[1,1]]}}}]},'error']] as const){
   const f=fixture(url=>url.includes('computeRoutes')?Response.json(response):Response.json(place));const result=await createGooglePlaceProvider(f.config).route([ref,ref],'walking') as any;
-  assert.equal(result.source,'google');assert.equal(result.status,response.routes.length?'error':'unsupported');assert.doesNotMatch(JSON.stringify(result),/secret/);
+  assert.equal(result.source,'google');assert.equal(result.status,status);assert.doesNotMatch(JSON.stringify(result),/secret/);
   const body=JSON.parse(String(f.requests.at(-1)!.init.body));assert.equal(body.routingPreference,undefined);
  }
  const f=fixture(()=>new Response('fixture-secret-key raw upstream',{status:429}));await assert.rejects(createGooglePlaceProvider(f.config).search('서울'),{code:'unavailable'});assert.equal(f.requests.length,1);

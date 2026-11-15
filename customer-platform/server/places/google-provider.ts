@@ -52,9 +52,12 @@ export function createGooglePlaceProvider(config:GooglePlaceProviderConfig):Plac
      origin:point(refs[0]!),destination:point(refs.at(-1)!),intermediates:refs.slice(1,-1).map(point),travelMode:mode==='driving'?'DRIVE':'WALK',
      ...(mode==='driving'?{routingPreference:'TRAFFIC_UNAWARE'}:{}),computeAlternativeRoutes:false,polylineQuality:'OVERVIEW',polylineEncoding:'GEO_JSON_LINESTRING',languageCode:'ko',
     });
-    if(!isRecord(raw)||!Array.isArray(raw.routes)||raw.routes.length>1)throw providerUnavailable();
-    if(!raw.routes.length)return result('unsupported','이 지역이나 이동 방식의 Google 경로를 찾지 못했습니다.');
-    const route=raw.routes[0];if(!isRecord(route)||!isRecord(route.polyline)||!isRecord(route.polyline.geoJsonLinestring))throw providerUnavailable();
+    if(!isRecord(raw))throw providerUnavailable();
+    // With the route-only field mask, Google can omit the empty routes array entirely.
+    const routes=Object.keys(raw).length===0?[]:raw.routes;
+    if(!Array.isArray(routes)||routes.length>1)throw providerUnavailable();
+    if(!routes.length)return result('unsupported','이 지역이나 이동 방식의 Google 경로를 찾지 못했습니다.');
+    const route=routes[0];if(!isRecord(route)||!isRecord(route.polyline)||!isRecord(route.polyline.geoJsonLinestring))throw providerUnavailable();
     const line=route.polyline.geoJsonLinestring;if(line.type!=='LineString'||!Array.isArray(line.coordinates)||line.coordinates.length<2||line.coordinates.length>200)throw providerUnavailable();
     const path=line.coordinates.map(p=>{if(!Array.isArray(p)||p.length!==2||!coordinate(p[0],180)||!coordinate(p[1],90))throw providerUnavailable();return {lat:p[1],lng:p[0]};});
     const display=placeDisplay({expiresAt:new Date(Math.min(Date.parse(expiresAt),...places.map(place=>Date.parse(place.display!.expiresAt)))).toISOString(),
