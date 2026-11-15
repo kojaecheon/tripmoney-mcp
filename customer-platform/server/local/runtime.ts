@@ -20,7 +20,12 @@ import {createTripChangeNotifier,createTripChangesService,createNotifyingService
 export function createLocalRuntime({ now, publicOrigin = 'http://127.0.0.1:8125', geminiTrial }: {
   now?: () => number; publicOrigin?: string; geminiTrial?: Parameters<typeof createGeminiTrial>[0];
 } = {}) {
-  if (geminiTrial && publicOrigin !== 'http://127.0.0.1:8125') throw Error('Gemini 시험은 로컬 개발 서버에서 실행해 주세요.');
+  if (geminiTrial) {
+    const origin = new URL(publicOrigin);
+    if (origin.origin !== publicOrigin || origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1') {
+      throw Error('Gemini 시험은 로컬 개발 서버에서 실행해 주세요.');
+    }
+  }
   const recommendationProvider = geminiTrial ? createGeminiTrial(geminiTrial) : createSyntheticRecommendationProvider();
   const store = createLocalAuthStore({ now });
   const provider = createLocalAuthProvider({ now });
