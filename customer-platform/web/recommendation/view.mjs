@@ -6,6 +6,9 @@ export function mountRecommendation(root,options) {
  <p class="help" id="recommendation-help">추천 후보의 장소와 비용을 확인한 뒤 저장할 일정을 선택해 주세요.</p>
  <form id="recommendation-form"><div class="field"><label for="recommendation-interests">관심사</label><input id="recommendation-interests" type="text" maxlength="204" placeholder="산책, 미술, 음식" aria-describedby="recommendation-preferences"><p class="help" id="recommendation-preferences">쉼표로 나누어 최대 5개, 각 40자까지 입력해 주세요.</p></div>
  <div class="field"><label for="recommendation-pace">여행 속도</label><select id="recommendation-pace"><option value="relaxed">여유롭게</option><option value="balanced">적당하게</option><option value="packed">알차게</option></select></div>
+ <div class="field" id="recommendation-external" hidden>
+ <p class="help" id="recommendation-data-use">여행지, 기간, 시간대, 인원, 예산, 관심사와 여행 속도를 Google Gemini에 보냅니다. Google은 무료 등급의 입력과 응답을 제품 개선에 사용할 수 있습니다. 서버 실행당 한 번 요청할 수 있습니다.</p>
+ <label><input type="checkbox" id="recommendation-consent" aria-describedby="recommendation-data-use"> 개인정보가 없는 가상 여행이며 위 조건을 보내는 데 동의합니다.</label></div>
  <button type="submit" id="recommendation-generate" class="secondary">추천 생성</button></form>
  <p id="recommendation-role" class="help" hidden>편집 권한이 있어야 추천을 만들고 저장할 수 있습니다.</p>
  <p id="recommendation-status" class="status" role="status" aria-live="polite" hidden></p><p id="recommendation-error" class="error" role="alert" hidden></p>
@@ -14,12 +17,15 @@ export function mountRecommendation(root,options) {
  const refs=Object.fromEntries([...root.querySelectorAll('[id]')].map(node=>[node.id,node]));
  function on(node,event,fn){node.addEventListener(event,fn);removers.push(()=>node.removeEventListener(event,fn));}
  on(refs['recommendation-interests'],'input',()=>c.setInterests(refs['recommendation-interests'].value));on(refs['recommendation-pace'],'change',()=>c.setPace(refs['recommendation-pace'].value));
+ on(refs['recommendation-consent'],'change',()=>c.setConsent(refs['recommendation-consent'].checked));
  on(refs['recommendation-form'],'submit',async event=>{event.preventDefault();await c.generate();});on(refs['recommendation-save'],'click',async()=>{await c.save();});
  const unsubscribe=c.subscribe(state=>{
   const busy=state.busy||state.saving;
   refs['recommendation-interests'].value=state.interests;refs['recommendation-pace'].value=state.pace;
   refs['recommendation-interests'].disabled=!state.canEdit||busy||state.selectionLocked;refs['recommendation-pace'].disabled=!state.canEdit||busy||state.selectionLocked;
-  refs['recommendation-generate'].disabled=!state.canEdit||busy||state.selectionLocked;refs['recommendation-generate'].textContent=state.busy?'생성 중':state.stale?'추천 다시 생성':'추천 생성';refs['recommendation-role'].hidden=state.canEdit;
+  refs['recommendation-external'].hidden=!state.requiresConsent;refs['recommendation-consent'].checked=state.consent;
+  refs['recommendation-consent'].disabled=!state.canEdit||busy||state.selectionLocked;
+  refs['recommendation-generate'].disabled=!state.canEdit||busy||state.selectionLocked||(state.requiresConsent&&!state.consent);refs['recommendation-generate'].textContent=state.busy?'생성 중':state.stale?'추천 다시 생성':'추천 생성';refs['recommendation-role'].hidden=state.canEdit;
   refs['recommendation-form'].setAttribute('aria-busy',String(busy));refs['recommendation-status'].textContent=state.busy?'추천 후보를 만들고 있습니다.':state.saving?'선택한 후보를 저장하고 있습니다.':state.status;
   refs['recommendation-status'].hidden=!busy&&!state.status;refs['recommendation-error'].textContent=state.error;refs['recommendation-error'].hidden=!state.error;
   refs['recommendation-result'].hidden=!state.draft;refs['recommendation-warnings'].textContent=state.draft?.warnings.join(' ')??'';
@@ -33,5 +39,5 @@ export function mountRecommendation(root,options) {
   cards.forEach((card,index)=>{const checkbox=card.children[0],item=state.draft.items[index];checkbox.checked=state.selectedIds.includes(item.id);checkbox.disabled=!state.canEdit||busy||state.stale||state.selectionLocked;});refs['recommendation-selection'].textContent=`${state.selectedIds.length}개 선택. 선택한 후보만 새 일정으로 저장합니다.`;
   refs['recommendation-save'].disabled=!state.canEdit||busy||(state.stale&&!state.selectionLocked)||!state.selectedIds.length;refs['recommendation-save'].textContent=state.saving?'저장 중':state.selectionLocked?'저장 결과 확인':'선택한 후보 저장';
  });
- return {updateContext:context=>c.updateContext(context),destroy(){unsubscribe();c.destroy();for(const remove of removers)remove();root.replaceChildren();}};
+ return {configure:c.configure,updateContext:context=>c.updateContext(context),destroy(){unsubscribe();c.destroy();for(const remove of removers)remove();root.replaceChildren();}};
 }

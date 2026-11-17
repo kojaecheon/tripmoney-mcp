@@ -168,7 +168,9 @@ export function createCustomerAuthServer({ config, authService, identityService,
       }
       if (req.method === 'GET' && path === '/api/customer/public-config') {
         const modeConfig=config.mode==='customer'?{mode:'customer',mailDelivery:config.mailDelivery,...(config.authMethod?{authMethod:config.authMethod}:{})}:{mode:'local-demo',mailDelivery:false,code:'123456'};
-        json(200,{...modeConfig,...(publicMaps?{maps:publicMaps}:{}),...(config.mode==='customer'&&kakaoService?{channels:{kakao:{mode:'development',channelUrl:'https://pf.kakao.com/_xjvDxeX',botName:'TripMoney 개발봇'}}}:{}),...(changesService&&identityService?{changes:{mode:'long-poll'}}:{})});return;
+        const recommendationMode=config.mode==='local-demo' && recommendationService?.requiresExternalDataConsent
+          ? {recommendationMode:'gemini-fictional'} : {};
+        json(200,{...modeConfig,...recommendationMode,...(publicMaps?{maps:publicMaps}:{}),...(config.mode==='customer'&&kakaoService?{channels:{kakao:{mode:'development',channelUrl:'https://pf.kakao.com/_xjvDxeX',botName:'TripMoney 개발봇'}}}:{}),...(changesService&&identityService?{changes:{mode:'long-poll'}}:{})});return;
       }
       if (req.method === 'GET' && path === '/api/customer/me') {
         const session = readCookie(req.headers.cookie, names.session); if (!session) throw denied();

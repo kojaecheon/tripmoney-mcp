@@ -9,7 +9,7 @@ import {createLocalRuntime} from '../../server/local/runtime.js';
 import {createCustomerAuthServer} from '../../server/http/server.js';
 import {readHttpConfig} from '../../server/http/config.js';
 
-async function fixture(t:TestContext, options?: {geminiTrial: {apiKey: string; fetcher: typeof fetch}}) {
+async function fixture(t:TestContext, options?: Parameters<typeof createLocalRuntime>[0]) {
   let clock=Date.now();
   const runtime=createLocalRuntime({now:()=>clock,...options});
   const server=createCustomerAuthServer({config:readHttpConfig({publicOrigin:'http://127.0.0.1:8125',clientKey:randomBytes(32)}),...runtime});
@@ -143,6 +143,52 @@ test('the Gemini trial can use another loopback port and rejects external origin
   for (const publicOrigin of ['https://example.invalid','http://127.0.0.1:8130/path','http://127.0.0.10:8130']) {
     assert.throws(()=>createLocalRuntime({publicOrigin,geminiTrial}),/로컬 개발 서버/);
   }
+});
+
+test('custom Gemini travel requires consent and only saves the selected day', async t => {
+  const dates = ['2026-11-07', '2026-11-08'];
+  const items = dates.map(date => ({
+    input: {date,startTime:'10:00',endTime:'12:00',title:'미술관 둘러보기',place:'서울',budgetKrw:20000,placeRef:null},
+    reason:'미술에 관심이 있는 가상 여행 후보입니다.',
+  }));
+  const bodies: string[] = [];
+  const {send,trip} = await fixture(t,{geminiTrial:{
+    apiKey:'AQ.fixture-gemini-key', scope:'custom-fictional',
+    async fetcher(_url,init) {
+      bodies.push(String(init?.body));
+      return Response.json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({items:[...items].reverse()})}]}}]});
+    },
+  }});
+  const path = `/api/customer/trips/${trip.id}`;
+  const input = {interests:['미술'],pace:'relaxed',expectedRevision:1};
+  assert.equal((await send('/api/customer/public-config')).body.recommendationMode,'gemini-fictional');
+  assert.equal((await send(path+'/recommendations',input)).status,422);
+  assert.equal((await send(path+'/recommendations',{...input,externalDataConsent:'true'})).status,422);
+  assert.equal(bodies.length,0);
+
+  const generated = await send(path+'/recommendations',{...input,externalDataConsent:true});
+  assert.equal(generated.status,200);
+  assert.equal(bodies.length,1);
+  const payload = JSON.parse(bodies[0]!);
+  assert.deepEqual(JSON.parse(payload.contents[0].parts[0].text),{
+    destination:'서울',startDate:dates[0],endDate:dates[1],timeZone:'Asia/Seoul',
+    memberCount:1,budgetKrw:100000,interests:['미술'],pace:'relaxed',
+  });
+  assert.equal(payload.tools,undefined);
+  assert.doesNotMatch(bodies[0]!,/owner@example|2차 합성 시험|fixture-gemini-key/);
+  const draft = generated.body.recommendation;
+  assert.equal(draft.source,'gemini');
+  assert.deepEqual(draft.items.map((item:{input:{date:string}})=>item.input.date),dates);
+  assert.equal((await send(path+'/ledger')).body.ledger.items.length,0);
+  assert.equal((await send(path+'/recommendations',{...input,externalDataConsent:true})).status,429);
+  assert.equal(bodies.length,1);
+
+  const selection = {selectedIds:[draft.items[1].id],operationId:randomUUID()};
+  const adoption = `${path}/recommendations/${draft.id}/adopt`;
+  assert.equal((await send(adoption,selection)).status,200);
+  assert.equal((await send(adoption,selection)).body.replayed,true);
+  const ledger = (await send(path+'/ledger')).body.ledger;
+  assert.deepEqual(ledger.items.map((item:{date:string})=>item.date),[dates[1]]);
 });
 
 test('recommendation HTTP adopts only selected server candidates once and binds the account',async t=>{

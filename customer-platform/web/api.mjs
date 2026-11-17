@@ -86,7 +86,10 @@ export function createApi(fetchFn = globalThis.fetch) {
       const channels=Object.hasOwn(body,'channels')?parseKakaoChannels(body.channels):undefined;
       const authMethod=Object.hasOwn(body,'authMethod')?body.authMethod:undefined;
       if(Object.hasOwn(body,'authMethod')&&(body.mode!=='customer'||authMethod!=='email-link')) invalid();
-      const extra={...(maps?{maps}:{}),...(changes?{changes}:{}),...(channels?{channels}:{}),...(authMethod?{authMethod}:{})};
+      const recommendationMode=body.recommendationMode;
+      if(Object.hasOwn(body,'recommendationMode')&&(body.mode!=='local-demo'||recommendationMode!=='gemini-fictional')) invalid();
+      const extra={...(maps?{maps}:{}),...(changes?{changes}:{}),...(channels?{channels}:{}),...(authMethod?{authMethod}:{}),
+        ...(recommendationMode?{recommendationMode}:{})};
       const size=Object.keys(body).length-Object.keys(extra).length;
       if(body.mode==='customer'&&typeof body.mailDelivery==='boolean'&&size===2) return {mode:'customer',mailDelivery:body.mailDelivery,...extra};
       if (body.mode !== 'local-demo' || body.mailDelivery !== false || body.code !== '123456' || size!==3) throw new ApiError(0, 'invalid_response');

@@ -147,7 +147,7 @@ test('app gates change requests on public config and refreshes through existing 
   const fixture={startup,callbackLoads,callbackStatus:'idle',api:{waitForChanges(_id:string,_after:number,_account:string,signal:AbortSignal){const pending=deferred<{tripId:string;revision:number}>();requests.push({signal,pending});return pending.promise;},logout(){clearedCookies++;}},
     travel,ledger,queue:{request:(...args:unknown[])=>travelRequests.push(args),sync(){},destroy(){}},
     auth:{state:authState,subscribe(fn:typeof authListen){authListen=fn;fn(authState);return()=>{};},destroy(){},bootstrap(){}},
-    widget:{updateContext(){},configureGoogle(){},destroy(){}},kakao:{updateContext(){},configure(config:unknown){kakaoConfigs.push(config);},destroy(){}},view:{destroy(){}}};
+    widget:{updateContext(){},configure(){},configureGoogle(){},destroy(){}},kakao:{updateContext(){},configure(config:unknown){kakaoConfigs.push(config);},destroy(){}},view:{destroy(){}}};
   for(const [key,value] of Object.entries({document,window,navigator,BroadcastChannel:undefined,__tripChangesAppFixture:fixture})) {
     const original=Object.getOwnPropertyDescriptor(globalThis,key);
     Object.defineProperty(globalThis,key,{value,configurable:true,writable:true});
