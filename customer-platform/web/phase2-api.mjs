@@ -51,7 +51,10 @@ export function createPhase2Api(call,{invalid,parseChange,parseTrip,parseDraft,p
   const base='kakao-local';
   const change=v=>parseChange(v,row=>({targetId:row.targetId===null?null:ledgerId(row.targetId)}));
   return {
-    generateRecommendation:(id,input,revision,account)=>call(`${trip(id)}/recommendations`,'POST',{interests:input.interests,pace:input.pace,expectedRevision:revision},b=>recommendation(b.recommendation,id,revision),account),
+    generateRecommendation:(id,input,revision,account)=>call(`${trip(id)}/recommendations`,'POST',{
+      interests:input.interests,pace:input.pace,expectedRevision:revision,
+      ...(input.externalDataConsent===true?{externalDataConsent:true}:{}),
+    },b=>recommendation(b.recommendation,id,revision),account),
     adoptRecommendation:(id,draftId,selectedIds,operationId,account)=>call(`${trip(id)}/recommendations/${encodeURIComponent(draftId)}/adopt`,'POST',{selectedIds,operationId},change,account),
     kakaoStatus:account=>call(base,'GET',undefined,b=>status(b.status),account),
     issueKakaoPair:account=>call(base+'/pair','POST',{},b=>({code:token(b.pair?.code),expiresAt:timestamp(b.pair?.expiresAt)}),account),

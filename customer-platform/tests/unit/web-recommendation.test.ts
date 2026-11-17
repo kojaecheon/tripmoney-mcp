@@ -4,6 +4,22 @@ const path='../../web/recommendation/controller.mjs',viewPath='../../web/recomme
 const context={accountId:'account',tripId:'trip',ledger:{tripId:'trip',revision:4,role:'editor'},day:'2026-11-07'};
 const draft={id:'draft',tripId:'trip',baseRevision:4,source:'synthetic',expiresAt:'2099-01-01T00:00:00Z',warnings:['합성 체험'],items:[{id:'one',input:{date:'2026-11-07',title:'<img onerror=alert(1)>',place:'예시',budgetKrw:1000,startTime:'10:00',endTime:'11:00'},reason:'이유',placeStatus:'unverified'}]};
 const turn=()=>new Promise<void>(r=>setImmediate(r));
+test('Gemini consent applies to one request with the reviewed travel conditions',async()=>{
+ const {createRecommendationController}=await import(path);
+ const requests:unknown[]=[];
+ const c=createRecommendationController({api:{generateRecommendation:async(_tripId:string,input:unknown)=>{
+  requests.push(input);return draft;
+ }}});
+ c.configure(true);c.updateContext(context);
+ assert.equal(await c.generate(),false);
+ c.setConsent(true);c.setInterests('과학');
+ assert.equal(await c.generate(),false);
+ c.setConsent(true);
+ assert.equal(await c.generate(),true);
+ assert.deepEqual(requests,[{interests:['과학'],pace:'balanced',externalDataConsent:true}]);
+ assert.equal(await c.generate(),false);
+ c.destroy();
+});
 test('requires explicit selection and preserves inputs, selection and operation ID after failed save',async()=>{
  const {createRecommendationController}=await import(path);let fail=true;const calls:any[]=[];const saved:any[]=[];
  const c=createRecommendationController({api:{generateRecommendation:async()=>draft,adoptRecommendation:async(...args:any[])=>{calls.push(args);if(fail)throw Error('network');return {tripRevision:5};}},onSaved:(...args:any[])=>saved.push(args)});

@@ -9,7 +9,7 @@ import type {ScheduleInput,ExpenseInput} from '../core/ledger/contracts.js';
 export function parsePlaceReference(value: unknown): PlaceRef | null;
 export interface AuthMe { userId: string; email: string; expiresAt: string }
 export type PublicMapsConfig={mode:'google';browserApiKey:string;mapId:string};
-export type PublicConfig = ({ mode:'local-demo';mailDelivery:false;code:'123456' } | {mode:'customer';mailDelivery:boolean;authMethod?:'email-link'}) & {maps?:PublicMapsConfig;changes?:{mode:'long-poll'};channels?:{kakao:{mode:'development';channelUrl:'https://pf.kakao.com/_xjvDxeX';botName:'TripMoney 개발봇'}}};
+export type PublicConfig = ({ mode:'local-demo';mailDelivery:false;code:'123456';recommendationMode?:'gemini-fictional' } | {mode:'customer';mailDelivery:boolean;authMethod?:'email-link'}) & {maps?:PublicMapsConfig;changes?:{mode:'long-poll'};channels?:{kakao:{mode:'development';channelUrl:'https://pf.kakao.com/_xjvDxeX';botName:'TripMoney 개발봇'}}};
 export interface CustomerApi {
   publicConfig(): Promise<PublicConfig>;
   me(): Promise<{ me: AuthMe }>;

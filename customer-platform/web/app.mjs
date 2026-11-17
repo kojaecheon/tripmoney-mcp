@@ -123,6 +123,7 @@ function connectAuth() {
     authView = renderAuth(authRoot, state, auth);
     changes.configure(state.config?.changes?.mode === 'long-poll');
     kakaoChannel.configure(state.config);
+    recommendation.configure(state.config?.recommendationMode === 'gemini-fictional');
     const demo=state.config?.mode==='local-demo';
     const label=document.getElementById('mode-label'),notice=document.getElementById('mode-notice');
     if(label)label.textContent=state.config?(demo?'로컬 체험':'내 여행'):'';

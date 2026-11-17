@@ -38,7 +38,8 @@ export function createLocalRuntime({ now, publicOrigin = 'http://127.0.0.1:8125'
     ledgerService:createLedgerService({ repository: repositories.ledgerRepository })});
   const placeService=createPlaceService({ledgerService,provider:createSyntheticPlaceProvider()});
   const draftService=createDraftService({ledgerService,provider:createSyntheticAiProvider(),now:now?()=>new Date(now()):undefined});
-  const recommendationService=createRecommendationService({identityService,ledgerService,placeService,provider:recommendationProvider,now});
+  const recommendationService=createRecommendationService({identityService,ledgerService,placeService,provider:recommendationProvider,now,
+    requiresExternalDataConsent:geminiTrial?.scope==='custom-fictional'?true:undefined});
   const kakaoLocalService=createKakaoLocalService({identityService,ledgerService,draftService,now});
   return { authService, identityService, ledgerService, placeService,draftService,recommendationService,kakaoLocalService,changesService,close() { changesService.close();kakaoLocalService.close();recommendationService.close();repositories.close(); store.close(); provider.close(); } };
 }

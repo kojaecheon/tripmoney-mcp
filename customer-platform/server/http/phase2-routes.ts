@@ -40,8 +40,11 @@ export async function handlePhase2Route(req:IncomingMessage,route:Phase2Route,op
   if(route.area==='recommendation') {
     const service=options.recommendationService!,tripId=ledgerId(route.tripId,'tripId');
     if(route.action==='generate') {
-      exact(body,['interests','pace','expectedRevision']);
-      const input={interests:body.interests,pace:body.pace} as RecommendationRequest;
+      const keys=['interests','pace','expectedRevision'];
+      if(service.requiresExternalDataConsent && Object.hasOwn(body,'externalDataConsent'))keys.push('externalDataConsent');
+      exact(body,keys);
+      const input={interests:body.interests,pace:body.pace,
+        ...(Object.hasOwn(body,'externalDataConsent')?{externalDataConsent:body.externalDataConsent}:{})} as RecommendationRequest;
       return {recommendation:await service.generate(actor,tripId,input,body.expectedRevision as number)};
     }
     exact(body,['selectedIds','operationId']);

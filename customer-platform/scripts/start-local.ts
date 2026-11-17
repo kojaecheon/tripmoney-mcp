@@ -2,8 +2,10 @@ import { randomBytes } from 'node:crypto';
 import { readHttpConfig } from '../server/http/config.js';
 import { createCustomerAuthServer } from '../server/http/server.js';
 import { createLocalRuntime } from '../server/local/runtime.js';
-const geminiTrial = process.argv.includes('--gemini-free-trial')
-  ? {apiKey: process.env.TRIPMONEY_GEMINI_API_KEY ?? ''}
+const customGeminiTrial = process.argv.includes('--gemini-free-recommendations');
+const geminiTrial: NonNullable<Parameters<typeof createLocalRuntime>[0]>['geminiTrial'] =
+  customGeminiTrial || process.argv.includes('--gemini-free-trial')
+  ? {apiKey: process.env.TRIPMONEY_GEMINI_API_KEY ?? '',scope:customGeminiTrial?'custom-fictional':undefined}
   : undefined;
 delete process.env.TRIPMONEY_GEMINI_API_KEY;
 const runtime = createLocalRuntime({geminiTrial});

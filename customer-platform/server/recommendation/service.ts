@@ -38,9 +38,11 @@ function text(value: unknown, field: string, max: number): string {
  if(typeof value!=='string'||/\p{Cc}/u.test(value)||!value.trim()||[...value.trim()].length>max)return invalid(field);
  return value.trim();
 }
-function request(raw: RecommendationRequest): RecommendationRequest {
+function request(raw: RecommendationRequest, requiresExternalDataConsent: boolean): RecommendationRequest {
  safe(raw);const r=record(raw);
- if(Object.keys(r).length!==2||!Array.isArray(r.interests)||r.interests.length>5||!['relaxed','balanced','packed'].includes(String(r.pace)))return invalid('recommendation');
+ if(requiresExternalDataConsent && r.externalDataConsent!==true)
+  throw new IdentityError('validation','개인정보 없는 가상 여행임을 확인해 주세요.');
+ if(Object.keys(r).length!==(requiresExternalDataConsent?3:2)||!Array.isArray(r.interests)||r.interests.length>5||!['relaxed','balanced','packed'].includes(String(r.pace)))return invalid('recommendation');
  return {interests:r.interests.map(v=>text(v,'interests',40)),pace:r.pace as RecommendationRequest['pace']};
 }
 function authorize(ledger: LedgerDTO, tripId: string, revision?: number) {
@@ -48,9 +50,9 @@ function authorize(ledger: LedgerDTO, tripId: string, revision?: number) {
  if(!['owner','editor'].includes(ledger.role))throw new IdentityError('forbidden','편집 권한을 확인해 주세요.');
  if(revision!==undefined&&ledger.revision!==revision)throw conflict();
 }
-export function createRecommendationService({identityService,ledgerService,placeService,provider,usageStore,now=Date.now}: {
+export function createRecommendationService({identityService,ledgerService,placeService,provider,usageStore,now=Date.now,requiresExternalDataConsent}: {
  identityService: Pick<IdentityService,'getTrip'>;ledgerService: LedgerService;placeService: Pick<PlaceService,'resolve'>;
- provider: RecommendationProvider;usageStore?:ProviderUsageStore;now?:()=>number;
+ provider: RecommendationProvider;usageStore?:ProviderUsageStore;now?:()=>number;requiresExternalDataConsent?:true;
 }): RecommendationService {
  const drafts=new Map<string,Stored>(), quotas=new Map<string,{count:number;until:number}>();let closed=false;
  function available(){if(closed)throw new IdentityError('unavailable','추천 서비스를 사용할 수 없습니다.');}
@@ -75,13 +77,14 @@ export function createRecommendationService({identityService,ledgerService,place
   for(const key of keys)quotas.set(key,{count:(quotas.get(key)?.count??0)+1,until:t+48*3600000});
  }
  return {
+  requiresExternalDataConsent,
   async generate(actor,rawTripId,raw,expectedRevision){
    available();const tripId=ledgerId(rawTripId,'tripId');
    const trip=await identityService.getTrip(actor,tripId),ledger=await ledgerService.get(actor,tripId);
    if(!Number.isSafeInteger(expectedRevision)||expectedRevision<1)return invalid('expectedRevision');authorize(ledger,tripId,expectedRevision);
    if(trip.id!==tripId)throw new IdentityError('not_found','여행을 찾을 수 없습니다.');
    if(!['owner','editor'].includes(trip.role)||trip.revision!==ledger.revision)throw conflict();
-   const clean=request(raw);
+   const clean=request(raw,requiresExternalDataConsent===true);
    if(provider.source!=='synthetic'&&provider.source!=='claude'&&provider.source!=='gemini')return invalid('source');
    for(const [id,row]of drafts)if(Date.parse(row.draft.expiresAt)<=now())drafts.delete(id);
    if(drafts.size>=500)throw new IdentityError('unavailable','보관 중인 추천이 많습니다. 잠시 뒤 다시 시도해 주세요.');
