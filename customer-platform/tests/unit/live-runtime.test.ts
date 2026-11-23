@@ -52,7 +52,11 @@ test('prepared runtime wires existing auth, trip and ledger domain with fake dep
  const login=await runtime.authService.verifyCode(challenge.challengeToken,'123456');
  const {actor}=await runtime.authService.authenticate(login.sessionToken);
  const created=await runtime.identityService.createTrip(actor,{name:'연결 준비',destination:'방콕',startDate:'2026-11-08',endDate:'2026-11-09',timeZone:'Asia/Bangkok',budgetKrw:100000,alias:'소유자',settlementMode:'daily',dailyTime:'20:00'},randomUUID());
- assert.equal((await runtime.ledgerService.get(actor,created.value.trip.id)).budgetKrw,100000);
+ const tripId=created.value.trip.id;
+ assert.equal((await runtime.ledgerService.get(actor,tripId)).budgetKrw,100000);
+ const final=await runtime.ledgerService.execute(actor,tripId,{type:'settlement.finalize',date:null},created.tripRevision,randomUUID());
+ assert.equal((await runtime.ledgerService.get(actor,tripId)).settlement.canClose,false);
+ await assert.rejects(runtime.ledgerService.execute(actor,tripId,{type:'settlement.close'},final.tripRevision,randomUUID()),{code:'unavailable'});
  await runtime.close();await runtime.close();assert.equal(disposed,1);
 });
 test('live runtime closes restricted pools when required SQL is absent without any provider call',async()=>{

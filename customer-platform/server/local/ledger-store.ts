@@ -7,7 +7,7 @@ import { addExpenseBalance, emptyBalances } from '../../core/ledger/settlement.j
 import { occurredAt } from '../../core/ledger/time.js';
 import type { TripSettings } from '../identity/contracts.js';
 import type { LedgerRepository } from '../ledger/contracts.js';
-import { assertExpenseUnlocked, viewSettlement, writePayment, writeSnapshot } from './settlement-store.js';
+import { assertExpenseUnlocked, assertSettlementOpen, viewSettlement, writePayment, writeSnapshot } from './settlement-store.js';
 import { access, bump, expected, failure, replay, tripMembers,
   type LedgerRows, type LocalTravelState, type TravelState } from './travel-state.js';
 
@@ -172,8 +172,11 @@ function apply(c: Context, cmd: LedgerCommand): string | null {
       Object.assign(e,{status:'cancelled'},meta(c));
       return e.id;
     }
-    case 'fx.update': c.rows.fx = {rateMilli:cmd.rateMilli,source:cmd.source}; return null;
-    case 'settlement.finalize': case 'settlement.reopen': return writeSnapshot(c,cmd);
+    case 'fx.update':
+      assertSettlementOpen(c.rows);
+      c.rows.fx = {rateMilli:cmd.rateMilli,source:cmd.source};
+      return null;
+    case 'settlement.finalize': case 'settlement.reopen': case 'settlement.close': return writeSnapshot(c,cmd);
     case 'payment.report': case 'payment.confirm': case 'payment.requestVoid': case 'payment.confirmVoid':
       return writePayment(c,cmd);
   }
@@ -205,7 +208,7 @@ export function buildLedgerRepository(shared: LocalTravelState): LedgerRepositor
       return shared.write(actor,s=>{
         const member = authorize(s);
         const {command,expectedRevision,operation} = prepare();
-        ownerOnly = command.type === 'fx.update' || command.type === 'settlement.finalize' || command.type === 'settlement.reopen';
+        ownerOnly = command.type === 'fx.update' || command.type.startsWith('settlement.');
         if (ownerOnly) assertPermission(member.role,'trip:update');
         const saved = replay<{targetId:string|null}>(s,actor,command.type,operation);
         if (saved) return saved;

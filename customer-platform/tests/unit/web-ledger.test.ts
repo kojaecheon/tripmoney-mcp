@@ -39,7 +39,7 @@ const ledger: LedgerDTO = {
   summary: {allocatedKrw: 60_000, spentKrw: 55_000, remainingKrw: 45_000, unassignedKrw: 10_000,
     byItem: [{itineraryId: itemId, budgetKrw: 60_000, spentKrw: 45_000, remainingKrw: 15_000}],
     byDate: [{date: trip.startDate, spentKrw: 55_000}], byMember: [{memberId, paidKrw: 55_000, owedKrw: 55_000, netKrw: 0}]},
-  settlement: {mode: 'end_of_trip', today: trip.startDate, dailyTime: '20:00', due: false,
+  settlement: {mode: 'end_of_trip', today: trip.startDate, dailyTime: '20:00', due: false, closure: null, canClose: false,
     days: [{date: trip.startDate, spentKrw: 55_000, current: legacyResult}], final: legacyResult, snapshots: [], payments: []},
 };
 const change = {value: {targetId: itemId}, tripRevision: 5, replayed: false};
@@ -425,7 +425,7 @@ const settlementResult = {
 };
 const paymentId = '60000000-0000-4000-8000-000000000003';
 const settlement = {
-  mode: 'daily' as const, today: '2026-11-06', dailyTime: '20:00', due: true,
+  mode: 'daily' as const, today: '2026-11-06', dailyTime: '20:00', due: true, closure: null, canClose: false,
   days: [
     {date: '2026-11-05', spentKrw: 55_000, current: settlementResult},
     {date: '2026-11-06', spentKrw: 0, current: {spentKrw: 0, balances: [], transfers: []}},
@@ -451,6 +451,35 @@ test('the ledger client projects public settlement data and rejects malformed ne
   await assert.rejects(client.getLedger(tripId, account), {code: 'invalid_response'});
   value = {...settlement, payments: [{...settlement.payments[0], revision: 0}]};
   await assert.rejects(client.getLedger(tripId, account), {code: 'invalid_response'});
+});
+
+test('the ledger client preserves closure details and rejects an unrelated snapshot reference', async () => {
+  const snapshot = {...settlement.snapshots[0]!, date: null, closedAt: at, closedByMemberId: memberId};
+  const closure = {snapshotId: snapshot.id, closedAt: at, closedByMemberId: memberId};
+  let value = {...settlement, canClose: false, closure, snapshots: [snapshot]};
+  const client = createApi(async () => json({ledger: {...settlementLedger, settlement: value}}));
+  const received = (await client.getLedger(tripId, account)).settlement;
+  assert.deepEqual(received.closure, closure);
+  assert.equal(received.snapshots[0]!.closedAt, at);
+  value = {...value, closure: {...closure, snapshotId: recipientId}};
+  await assert.rejects(client.getLedger(tripId, account), {code: 'invalid_response'});
+});
+
+test('an owner reviews and submits a ready settlement closure without a date field', async t => {
+  const zero = {...settlementResult, transfers: [], balances: []};
+  let current = {...settlementLedger, settlement: {...settlement, final: zero, payments: [], closure: null, canClose: true,
+    snapshots: [{...settlement.snapshots[0]!, date: null}]}};
+  const sent: unknown[] = [];
+  const c = await setup(t, fake({getLedger: async () => current, executeLedger: async (...args) => {
+    sent.push(args[1]);
+    current = {...current, revision: current.revision + 1};
+    return change;
+  }}));
+  await c.setContext(account, trip);
+  c.reviewSettlement('settlement.close', null);
+  assert.equal(c.state.settlementReview?.stale, false);
+  assert.equal(await c.confirmSettlement(), true);
+  assert.deepEqual(sent, [{type: 'settlement.close'}]);
 });
 
 test('settlement conflicts require re-reading and starting the action again', async t => {

@@ -76,6 +76,7 @@ export function mountItinerary(r, actions, helpers) {
     writeText(li.change, changeLabel(ledger, row));
     if (!li.controls) return;
     li.controls.hidden = !state.canEdit;
+    li.expense.hidden = !!ledger.settlement?.closure;
     const locked = writesLocked(state);
     for (const [control, name] of [[li.edit,'수정'],[li.expense,'경비 등록'],[li.up,'위로 이동'],[li.down,'아래로 이동'],[li.cancel,'취소']]) {
       control.setAttribute('aria-label', `${row.title} 일정 ${name}`);

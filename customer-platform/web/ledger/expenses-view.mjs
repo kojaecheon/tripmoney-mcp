@@ -2,10 +2,12 @@ import {
   button, changeLabel, dayLabel, element, expenseLabels, field, fxName, issueFor, itemName, memberName, reconcile,
   renderField, renderOptions, tripDates, won, writeText, writesLocked,
 } from './forms.mjs';
+import {expenseIntakeMarkup, mountExpenseIntake} from './expense-intake.mjs';
 
 export const expensesMarkup = `
 <section class="ledger-section" aria-labelledby="ledger-expenses-title">
   <h4 id="ledger-expenses-title" tabindex="-1">경비 내역</h4>
+  <p id="ledger-expenses-closed" class="help" hidden>여행 정산을 마감했습니다. 경비를 수정하려면 소유자가 정산을 재개해야 합니다.</p>
   <p id="ledger-expenses-unassigned" class="ledger-amount-line"></p>
   <div class="ledger-fields ledger-filters">
     <div class="field"><label for="ledger-filter-date">지출 날짜 필터</label><select id="ledger-filter-date"></select></div>
@@ -14,6 +16,7 @@ export const expensesMarkup = `
   </div>
   <p id="ledger-expenses-empty" class="help" hidden>선택한 조건에 해당하는 경비가 없습니다.</p>
   <ul id="ledger-expense-list" class="ledger-list"></ul>
+  ${expenseIntakeMarkup}
   <form id="ledger-expense-form" class="ledger-editor" novalidate>
     <h5 id="ledger-expense-form-title">경비 등록</h5>
     <div class="ledger-fields">
@@ -48,6 +51,7 @@ function applyFilters(rows, {date, itineraryId, payerId}) {
 
 export function mountExpenses(r, actions, helpers) {
   const {on, focus, run, confirm} = helpers;
+  const intake = mountExpenseIntake(r, actions, helpers);
   const doc = r['ledger-expense-list'].ownerDocument;
   const rows = new Map(), splits = new Map();
   const keys = Object.keys(expenseLabels).filter(key => key !== 'splitIds');
@@ -59,10 +63,16 @@ export function mountExpenses(r, actions, helpers) {
     });
   }
   for (const key of ['date','itineraryId','payerId']) on(r[`ledger-filter-${key}`], 'change', event => actions.setFilter(key, event.target.value));
-  on(r['ledger-new-expense'], 'click', () => {actions.editExpense(); focus('ledger-expense-title');});
+  on(r['ledger-new-expense'], 'click', () => {
+    intake.close();
+    actions.editExpense();
+    focus('ledger-expense-title');
+  });
   on(r['ledger-expense-form'], 'submit', event => {
     event.preventDefault();
-    void run(event.submitter, actions.saveExpense, 'ledger-expenses-title');
+    void run(event.submitter, async () => {
+      if (await actions.saveExpense()) intake.close();
+    }, 'ledger-expenses-title');
   });
   on(r['ledger-split-options'], 'change', () => actions.setExpenseField('splitIds',
     [...r['ledger-split-options'].querySelectorAll('input:checked')].map(node => node.value)));
@@ -94,13 +104,13 @@ export function mountExpenses(r, actions, helpers) {
     const shares = row.shares.map(share => `${memberName(ledger, share.memberId)} ${won(share.amountKrw)}`).join(', ');
     writeText(li.shares, `결제자 ${memberName(ledger, row.payerId)} · 균등 분담 ${shares}`);
     writeText(li.change, changeLabel(ledger, row));
-    li.controls.hidden = !state.canEdit || row.status !== 'active';
+    li.controls.hidden = !state.canEdit || !!ledger.settlement?.closure || row.status !== 'active';
     li.edit.setAttribute('aria-label', `${row.title} 경비 수정`);
     li.cancel.setAttribute('aria-label', `${row.title} 경비 취소`);
     li.edit.disabled = li.cancel.disabled = writesLocked(state);
   }
 
-  return function render(state) {
+  function render(state) {
     const {ledger, expenseDraft: draft, filters} = state;
     const items = ledger?.items ?? [], members = ledger?.members ?? [];
     const original = ledger?.expenses.find(row => row.id === state.expenseId);
@@ -123,7 +133,9 @@ export function mountExpenses(r, actions, helpers) {
       state.busy ? undefined : focused => focused.closest('[data-expense-id]')?.titleNode);
 
     const form = r['ledger-expense-form'], writing = state.busy === 'write';
-    form.hidden = !state.canEdit;
+    intake.render(state);
+    r['ledger-expenses-closed'].hidden = !ledger?.settlement?.closure;
+    form.hidden = !state.canEdit || !!ledger?.settlement?.closure;
     writeText(r['ledger-expense-form-title'], state.expenseId ? '경비 수정' : '경비 등록');
     writeText(r['ledger-save-expense'], state.expenseId ? '경비 수정 저장' : '경비 저장');
     r['ledger-save-expense'].disabled = writesLocked(state);
@@ -158,5 +170,7 @@ export function mountExpenses(r, actions, helpers) {
       label.firstElementChild.checked = draft.splitIds.includes(member.id);
       writeText(label.lastElementChild, memberName(ledger, member.id));
     });
-  };
+  }
+  render.destroy = intake.close;
+  return render;
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError, createApi } from '../../web/api.mjs';
 import type { IdentityApi } from '../../web/api.mjs';
-import { createTravelController, readInviteFragment, defaultTripDraft } from '../../web/travel/controller.mjs';
+import { createTravelController, readInviteFragment, readSharedTripFragment, defaultTripDraft } from '../../web/travel/controller.mjs';
 const trip = { id: 'trip-1', name: '서울 여행', destination: '서울', startDate: '2026-11-02', endDate: '2026-11-03', timeZone: 'Asia/Seoul', budgetKrw: 0, settlementMode: 'end_of_trip' as const, dailyTime: '20:00', revision: 1, status: 'active' as const, createdAt: '2026-11-02T00:00:00Z', ownerMemberId: 'member-1', role: 'owner' as const, memberCount: 1 };
 const member = { id: 'member-1', tripId: trip.id, alias: '여행자', role: 'owner' as const, active: true, isMe: true };
 const change = <T>(value: T, replayed = false) => ({ value, tripRevision: 1, replayed });
@@ -24,6 +24,14 @@ test('owner flag follows role; 403 stops writes and 404 clears inaccessible trip
 test('invite token remains closure-only and initial anonymous bootstrap preserves it',async()=>{let inspections=0;const c=ready({inspectInvite:async()=>{inspections++;return {state:'pending',tripName:trip.name,role:'viewer',expiresAt:'2026-11-09T00:00:00Z'};}});c.setInviteToken('sensitive-test-value');await c.setAccount(null);assert.equal(inspections,0);assert.ok(!JSON.stringify(c.state).includes('sensitive-test-value'));await c.setAccount('a');assert.equal(c.state.invite?.state,'pending');c.setAlias('동행자');await c.acceptInvite();assert.equal(c.state.trip?.id,trip.id);assert.equal(c.state.alias,'');await c.setAccount(null);await c.setAccount('b');assert.equal(inspections,1);c.destroy();});
 test('joined opens detail; alias/503 failure keeps alias and does not report success',async()=>{const joined=ready({inspectInvite:async()=>({state:'joined',tripId:trip.id})});joined.setInviteToken('sample');await joined.setAccount('a');assert.equal(joined.state.trip?.id,trip.id);joined.destroy();let status=422;const c=ready({acceptInvite:async()=>{throw new ApiError(status,status===422?'validation':'unavailable','alias');}});c.setInviteToken('sample');await c.setAccount('a');c.setAlias('나');await c.acceptInvite();assert.equal(c.state.alias,'나');assert.equal(c.state.error?.field,'alias');status=503;c.discardPending();await c.acceptInvite();assert.equal(c.state.alias,'나');assert.equal(c.state.error?.code,'unavailable');assert.equal(c.state.trip,null);c.destroy();});
 test('fragment is removed immediately',()=>{const calls:unknown[]=[];assert.equal(readInviteFragment({hash:'#t=sample',pathname:'/invite',search:''},{replaceState:(...args:unknown[])=>calls.push(args)}),'sample');assert.deepEqual(calls[0],[null,'','/invite']);});
+test('settlement links accept one canonical trip identifier and no invite secret', () => {
+ const id = '40000000-0000-4000-8000-000000000001';
+ assert.equal(readSharedTripFragment({pathname:'/', hash:`#trip=${id}`}), id);
+ for (const hash of [`#trip=${id}&trip=${id}`, `#trip=${id}&t=token`, '#trip=invalid', '#main']) {
+  assert.equal(readSharedTripFragment({pathname:'/', hash}), null);
+ }
+ assert.equal(readSharedTripFragment({pathname:'/invite', hash:`#trip=${id}`}), null);
+});
 test('owner links validate origin and stay out of subscriptions, copy awaits success and fallback is manual', async()=>{
  const invite={id:'i',role:'viewer' as const,status:'pending' as const,expiresAt:'2026-11-09T00:00:00Z'};const url='http://127.0.0.1:8125/invite#t=sensitive-share-value';let external=false;
  const c=ready({issueInvite:async()=>change({invite,url:external?'https://outside.invalid/invite#t=sample':url}),getInviteLink:async()=>({invite,url})});const seen:string[]=[];c.subscribe(s=>seen.push(JSON.stringify(s)));await c.setAccount('a');await c.selectTrip(trip.id);await c.issueInvite();assert.equal(c.state.shareOpen,true);assert.ok(seen.every(s=>!s.includes('sensitive-share-value')));const textarea={value:''};c.fillShare(textarea);assert.equal(textarea.value,url);

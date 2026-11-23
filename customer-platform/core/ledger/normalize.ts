@@ -105,6 +105,9 @@ export function normalizeLedgerCommand(value: unknown): LedgerCommand {
       const {date} = fields(value,['type','date'],'command');
       return {type,date:date === null ? null : calendarDate(date)};
     }
+    case 'settlement.close':
+      fields(value,['type'],'command');
+      return {type};
     case 'payment.report': {
       const {toMemberId,amountKrw} = fields(value,['type','toMemberId','amountKrw'],'command');
       if (typeof amountKrw !== 'number' || !Number.isSafeInteger(amountKrw) ||

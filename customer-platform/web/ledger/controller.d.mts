@@ -8,7 +8,7 @@ export type ScheduleDraft = Omit<ScheduleInput, 'budgetKrw'> & {budgetKrw: strin
 export type ExpenseDraft = ExpenseInput;
 export type FxDraft = Omit<LedgerFx, 'rateMilli'> & {rateMilli: string};
 export type PaymentDraft = {toMemberId: string; amountKrw: string};
-type SettlementAction = 'settlement.finalize' | 'settlement.reopen';
+type SettlementAction = 'settlement.finalize' | 'settlement.reopen' | 'settlement.close';
 type PaymentAction = 'payment.confirm' | 'payment.requestVoid' | 'payment.confirmVoid';
 export type LedgerFilters = {date: string; itineraryId: string; payerId: string};
 export interface LedgerState {

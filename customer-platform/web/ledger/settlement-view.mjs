@@ -1,4 +1,5 @@
 import { focusAfterAction } from '../travel/view.mjs';
+import { mountSettlementShare } from './settlement-share.mjs';
 import {
   actionLabels, activeSnapshot, button, dayLabel, element, field, issueFor, memberName, paymentAction, paymentLabels,
   paymentRecipients, reconcile, renderField, renderOptions, seoulTime, settlementAction, won, writeText, writesLocked,
@@ -19,6 +20,9 @@ function periodMarkup(kind, title, dateField = '') {
     <ul id="${id}-transfers" class="ledger-list"></ul>
     <button id="${id}-action" type="button" class="secondary" aria-controls="ledger-settlement-review"
       aria-describedby="${id}-status ledger-write-help" aria-expanded="false" hidden></button>
+    ${kind === 'final' ? `<button id="${id}-close" type="button" class="primary" aria-controls="ledger-settlement-review"
+      aria-describedby="${id}-status ledger-write-help" aria-expanded="false" hidden>여행 정산 마무리</button>` : ''}
+    <div id="${id}-share"></div>
   </section>`;
 }
 const dateField = `<div class="field ledger-settlement-date">
@@ -40,7 +44,7 @@ export const settlementMarkup = `
   ${periodMarkup('daily', '일일 정산', dateField)}
   ${periodMarkup('final', '여행 최종 정산')}
   <details id="ledger-settlement-history" class="ledger-history">
-    <summary>정산 확정 이력</summary>
+    <summary>정산 확정·마감 이력</summary>
     <p class="help">각 기록은 확정 당시의 경비와 잔액을 보여 줍니다.</p>
     <p id="ledger-settlement-history-empty" class="help" hidden>아직 확정한 정산이 없습니다.</p>
     <ul id="ledger-settlement-snapshots" class="ledger-list"></ul>
@@ -87,6 +91,10 @@ export function mountSettlement(r, actions, {on, focus, run}) {
   const balances = {daily: new Map(), final: new Map()}, transfers = {daily: new Map(), final: new Map()};
   const snapshots = new Map(), pending = new Map(), history = new Map();
   const paymentKeys = Object.keys(paymentLabels);
+  const shares = Object.fromEntries(['daily', 'final'].map(kind => [kind, mountSettlementShare(doc, {
+    container: r[`ledger-${kind}-settlement-share`], on, fallbackFocus: r[`ledger-${kind}-settlement-title`],
+  })]));
+  const closeTrigger = r['ledger-final-settlement-close'];
   let reviewOrigin = null;
   let lastContext = null;
 
@@ -103,6 +111,11 @@ export function mountSettlement(r, actions, {on, focus, run}) {
       if (actions.state.settlementReview) focus('ledger-settlement-review-title');
     });
   }
+  on(closeTrigger, 'click', () => {
+    reviewOrigin = closeTrigger;
+    actions.reviewSettlement('settlement.close', null);
+    if (actions.state.settlementReview?.type === 'settlement.close') focus('ledger-settlement-review-title');
+  });
   on(r['ledger-settlement-confirm-yes'], 'click', event => {
     const kind = actions.state.settlementReview?.date === null ? 'final' : 'daily';
     void run(event.currentTarget, actions.confirmSettlement, `ledger-${kind}-settlement-title`);
@@ -136,13 +149,29 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     const type = settlementAction(settlement, date);
     const context = snapshot ? '확정됨 · 확정 당시 금액은 정산 확정 이력에서 확인할 수 있습니다.'
       : date !== null && date > settlement.today ? '예정된 날짜 · 여행지 날짜가 되면 확정할 수 있습니다.' : '미확정';
-    writeText(r[`${id}-status`], `${context}${finalLock ? ' · 여행 최종 정산을 재개해야 일일 정산을 변경할 수 있습니다.' : ''}`);
+    let status = `${context}${finalLock ? ' · 여행 최종 정산을 재개해야 일일 정산을 변경할 수 있습니다.' : ''}`;
+    const closure = kind === 'final' ? settlement.closure : null;
+    if (kind === 'final' && snapshot) {
+      if (closure) status = `마감 완료 · ${memberName(ledger, closure.closedByMemberId)} · ${seoulTime(closure.closedAt)} (한국 시간)`;
+      else if (settlement.canClose) status = '입금 확인 완료 · 여행 정산을 마무리할 수 있습니다.';
+      else if (settlement.final.transfers.length || settlement.payments.some(row => row.status === 'reported' || row.status === 'void_requested')) {
+        status = '확정됨 · 남은 잔액과 지급·취소 확인을 마치면 마감할 수 있습니다.';
+      }
+    }
+    writeText(r[`${id}-status`], status);
     writeText(r[`${id}-spent`], `${kind === 'daily' ? '선택일까지 누적 실지출' : '그룹 전체 실지출'} ${won(result?.spentKrw ?? 0)}`);
     const trigger = r[`${id}-action`];
     trigger.hidden = !state.canSettle || !type;
     trigger.disabled = writesLocked(state);
-    trigger.setAttribute('aria-expanded', String(state.settlementReview?.date === date));
+    trigger.setAttribute('aria-expanded', String(state.settlementReview?.date === date && state.settlementReview.type !== 'settlement.close'));
     writeText(trigger, type ? `${kind === 'daily' ? '일일' : '최종'} ${actionLabels[type]}` : '');
+    if (kind === 'final') {
+      closeTrigger.hidden = !state.canSettle || !settlement.canClose;
+      closeTrigger.disabled = writesLocked(state);
+      closeTrigger.setAttribute('aria-expanded', String(state.settlementReview?.type === 'settlement.close'));
+    }
+    shares[kind]({snapshot, result, tripId: state.tripId, closed: Boolean(closure),
+      accountId: state.error?.code === 'forbidden' ? null : state.accountId});
     reconcile(r[`${id}-balances`], balances[kind], (result?.balances ?? []).map(row => ({...row, id: row.memberId})),
       () => element(doc, 'li'), (li, row) => writeText(li, balanceLabel(ledger, row)));
     reconcile(r[`${id}-transfers`], transfers[kind],
@@ -168,10 +197,12 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     return li;
   }
   function updateSnapshot(li, row, ledger) {
-    writeText(li.titleNode, `${scopeLabel(row.date)} · 갱신 ${row.sourceRevision} · ${row.reopenedAt ? '재개됨' : '확정됨'}`);
+    const status = row.reopenedAt ? '재개됨' : row.closedAt ? '마감 완료' : '확정됨';
+    writeText(li.titleNode, `${scopeLabel(row.date)} · 갱신 ${row.sourceRevision} · ${status}`);
     const created = `확정 ${memberName(ledger, row.createdByMemberId)} · ${seoulTime(row.createdAt)}`;
+    const closed = row.closedAt ? ` / 마감 ${memberName(ledger, row.closedByMemberId)} · ${seoulTime(row.closedAt)}` : '';
     const reopened = row.reopenedAt ? ` / 재개 ${memberName(ledger, row.reopenedByMemberId)} · ${seoulTime(row.reopenedAt)}` : '';
-    writeText(li.meta, `${created}${reopened} (한국 시간)`);
+    writeText(li.meta, `${created}${closed}${reopened} (한국 시간)`);
     writeText(li.result, `확정 당시 그룹 전체 실지출 ${won(row.result.spentKrw)}`);
     reconcile(li.balances, li.balanceNodes, row.result.balances.map(row => ({...row, id: row.memberId})),
       () => element(doc, 'li'), (li, balance) => writeText(li, balanceLabel(ledger, balance)));
@@ -201,7 +232,7 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     if (row.voidRequestedAt) times.push(`취소 요청 ${memberName(ledger, row.voidRequestedByMemberId)} · ${seoulTime(row.voidRequestedAt)}`);
     if (row.voidedAt) times.push(`취소 ${seoulTime(row.voidedAt)}`);
     writeText(li.meta, `${paymentStatus[row.status]} · ${times.join(' / ')} (한국 시간)`);
-    const action = state.canEdit ? paymentAction(ledger, row) : null;
+    const action = state.canEdit && !ledger.settlement.closure ? paymentAction(ledger, row) : null;
     li.control.hidden = !action;
     li.control.disabled = writesLocked(state);
     li.control.dataset.ledgerAction = action ?? 'payment';
@@ -223,6 +254,8 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     }
     r['ledger-settlement'].hidden = !settlement;
     if (!settlement) {
+      shares.daily();
+      shares.final();
       renderOptions(r['ledger-settlement-date'], [], '');
       renderOptions(r['ledger-payment-toMemberId'], [], '');
       r['ledger-payment-amountKrw'].value = '';
@@ -254,11 +287,13 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     if (settlementReview) {
       const {date, type, stale} = settlementReview;
       const finalize = type === 'settlement.finalize';
+      const close = type === 'settlement.close';
       const target = date === null ? '여행 전체' : dayLabel(date);
       const result = date === null ? settlement.final : settlement.days.find(row => row.date === date)?.current;
-      writeText(r['ledger-settlement-review-title'], `${target} 정산을 ${finalize ? '확정' : '재개'}할까요?`);
+      writeText(r['ledger-settlement-review-title'], close ? '여행 정산을 마무리할까요?' : `${target} 정산을 ${finalize ? '확정' : '재개'}할까요?`);
       writeText(r['ledger-settlement-review-help'], stale
         ? '정산 정보가 바뀌었습니다. 돌아간 뒤 현재 금액과 지급 제안을 다시 확인해 주세요.'
+        : close ? '남은 잔액과 확인 대기 항목이 없습니다. 마감 이후 경비나 지급 기록을 바꾸려면 정산을 재개해야 합니다.'
         : finalize ? `현재 실지출 ${won(result?.spentKrw ?? 0)}과 지급 제안을 확정 이력에 남깁니다. 확정 범위의 경비를 변경하려면 정산을 재개해야 합니다.`
           : '기존 확정 이력은 보존됩니다. 정산을 재개하면 해당 경비를 변경할 수 있습니다.');
       writeText(r['ledger-settlement-confirm-yes'], actionLabels[type]);
@@ -269,8 +304,8 @@ export function mountSettlement(r, actions, {on, focus, run}) {
     reconcile(r['ledger-settlement-snapshots'], snapshots, [...settlement.snapshots].reverse(), makeSnapshot,
       (li, row) => updateSnapshot(li, row, ledger));
     const recipients = paymentRecipients(ledger);
-    r['ledger-payment-no-recipients'].hidden = !state.canEdit || recipients.length > 0;
-    r['ledger-payment-form'].hidden = !state.canEdit || recipients.length === 0;
+    r['ledger-payment-no-recipients'].hidden = !state.canEdit || !!settlement.closure || recipients.length > 0;
+    r['ledger-payment-form'].hidden = !state.canEdit || !!settlement.closure || recipients.length === 0;
     renderOptions(r['ledger-payment-toMemberId'], [{id: '', label: '받는 동행자 선택'},
       ...recipients.map(row => ({id: row.id, label: memberName(ledger, row.id)}))], paymentDraft.toMemberId);
     r['ledger-save-payment'].disabled = locked;

@@ -11,7 +11,7 @@ const token='server-issued-review-token-123456789',secret='test-header-secret-wi
 const ledger:LedgerDTO={tripId,revision:17,role:'owner',startDate:'2026-11-08',endDate:'2026-11-10',timeZone:'Asia/Seoul',budgetKrw:100000,
  fx:{source:'demo',rateMilli:38600},members:[{id:payerId,tripId,alias:'홍길동',role:'owner',active:true,isMe:true},{id:secondId,tripId,alias:'김여행',role:'editor',active:true,isMe:false},{id:inactiveId,tripId,alias:'퇴장한사람',role:'viewer',active:false,isMe:false}],
  items:[],expenses:[],summary:{allocatedKrw:0,spentKrw:0,remainingKrw:100000,unassignedKrw:100000,byItem:[],byDate:[],byMember:[]},history:[],
- settlement:{mode:'end_of_trip',today:'2026-11-08',dailyTime:'21:00',due:false,days:[],final:{spentKrw:0,balances:[],transfers:[]},snapshots:[],payments:[]}};
+ settlement:{mode:'end_of_trip',today:'2026-11-08',dailyTime:'21:00',due:false,days:[],final:{spentKrw:0,balances:[],transfers:[]},snapshots:[],payments:[],closure:null,canClose:false}};
 function request(utterance:unknown,extra?:Record<string,string>):KakaoSkillRequest {
  return {headers:{'x-tripmoney-skill-secret':secret},rawBody:JSON.stringify({bot:{id:'dev-bot'},userRequest:{user:{id:'bot-user',type:'botUserKey'},utterance},...(extra?{action:{params:{},clientExtra:extra}}:{})})};
 }

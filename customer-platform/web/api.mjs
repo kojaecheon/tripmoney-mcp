@@ -298,8 +298,12 @@ function parseSnapshot(value) {
   ledgerId(row.id);
   ledgerId(row.createdByMemberId);
   if (!isoDate(row.createdAt) || !row.sourceRevision) invalid();
-  return {...row, date: nullableDate(value.date), result: parseSettlementResult(value.result),
-    reopenedAt: nullableTimestamp(value.reopenedAt), reopenedByMemberId: nullableLedgerId(value.reopenedByMemberId)};
+  const date = nullableDate(value.date);
+  const closed = Object.hasOwn(value, 'closedAt') || Object.hasOwn(value, 'closedByMemberId');
+  if (closed && (date !== null || !isoDate(value.closedAt))) invalid();
+  return {...row, date, result: parseSettlementResult(value.result),
+    reopenedAt: nullableTimestamp(value.reopenedAt), reopenedByMemberId: nullableLedgerId(value.reopenedByMemberId),
+    ...(closed ? {closedAt: value.closedAt, closedByMemberId: ledgerId(value.closedByMemberId)} : {})};
 }
 function parsePayment(value) {
   const row = checked(value, ['id','status','reportedAt'], ['revision']);
@@ -314,8 +318,21 @@ function parseSettlement(value) {
   const row = checked(value, ['mode','today','dailyTime'], [], ['due']);
   calendarDate(row.today);
   if (!['daily','end_of_trip'].includes(row.mode) || !clock(row.dailyTime)) invalid();
-  return {...row, final: parseSettlementResult(value.final), snapshots: list(value.snapshots, parseSnapshot),
-    payments: list(value.payments, parsePayment), days: list(value.days, value => {
+  const final = parseSettlementResult(value.final);
+  const snapshots = list(value.snapshots, parseSnapshot);
+  const payments = list(value.payments, parsePayment);
+  const hasClosureState = Object.hasOwn(value, 'closure') || Object.hasOwn(value, 'canClose');
+  if (hasClosureState && typeof value.canClose !== 'boolean') invalid();
+  const canClose = value.canClose === true;
+  const closure = hasClosureState && value.closure !== null
+    ? checked(value.closure, ['snapshotId', 'closedAt', 'closedByMemberId']) : null;
+  const activeFinal = snapshots.find(snapshot => snapshot.date === null && snapshot.reopenedAt === null);
+  if (Boolean(closure) !== Boolean(activeFinal?.closedAt) || (closure &&
+    (ledgerId(closure.snapshotId) !== activeFinal?.id || closure.closedAt !== activeFinal.closedAt ||
+      ledgerId(closure.closedByMemberId) !== activeFinal.closedByMemberId))) invalid();
+  if (canClose && (!activeFinal || closure || final.balances.some(balance => balance.netKrw !== 0) ||
+    payments.some(payment => payment.status === 'reported' || payment.status === 'void_requested'))) invalid();
+  return {...row, final, snapshots, payments, closure, canClose, days: list(value.days, value => {
       const day = checked(value, ['date'], ['spentKrw']);
       calendarDate(day.date);
       return {...day, current: parseSettlementResult(value.current)};

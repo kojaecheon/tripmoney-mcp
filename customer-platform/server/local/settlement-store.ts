@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { IdentityError, type Trip } from '../../core/contracts.js';
-import type { LedgerCommand, LedgerSummary, PaymentDTO, SettlementDTO } from '../../core/ledger/contracts.js';
+import type { LedgerCommand, LedgerSummary, PaymentDTO, SettlementDTO, SettlementResult,
+  SettlementSnapshot } from '../../core/ledger/contracts.js';
 import { invalid, safeSum } from '../../core/ledger/money.js';
 import { addExpenseBalance, calculateSettlement, emptyBalances } from '../../core/ledger/settlement.js';
 import { occurredAt, tripClock } from '../../core/ledger/time.js';
@@ -16,6 +17,15 @@ function activeSnapshot(rows: LedgerRows, date: string | null) {
 
 export function assertExpenseUnlocked(rows: LedgerRows, ...dates: string[]) {
   if (activeSnapshot(rows,null) || dates.some(date => activeSnapshot(rows,date))) return invalid('settlementLocked');
+}
+
+export function assertSettlementOpen(rows: LedgerRows) {
+  if (activeSnapshot(rows,null)?.closedAt !== undefined) return invalid('settlementLocked');
+}
+
+function snapshotCanClose(snapshot: SettlementSnapshot, payments: PaymentDTO[], final: SettlementResult) {
+  return snapshot.closedAt === undefined && final.balances.every(balance => balance.netKrw === 0) &&
+    !payments.some(payment => payment.status === 'reported' || payment.status === 'void_requested');
 }
 
 function passedDailyTime(trip: Trip, at: string, date: string, wallTime: string): boolean {
@@ -47,13 +57,37 @@ export function viewSettlement(trip: Trip, rows: LedgerRows, summary: LedgerSumm
     }
     days.push({date,spentKrw,current:calculateSettlement(cumulativeKrw,balances.values(),rows.payments,date)});
   }
+  const snapshot = activeSnapshot(rows,null);
   const due = mode === 'daily' && today >= trip.startDate && today <= trip.endDate &&
-    !activeSnapshot(rows,today) && !activeSnapshot(rows,null) && passedDailyTime(trip,at,today,time);
-  return {mode,today,dailyTime,due,days,final:calculateSettlement(summary.spentKrw,summary.byMember,rows.payments,null),
-    snapshots:rows.snapshots,payments:rows.payments};
+    !activeSnapshot(rows,today) && !snapshot && passedDailyTime(trip,at,today,time);
+  const final = calculateSettlement(summary.spentKrw,summary.byMember,rows.payments,null);
+  const closure = snapshot?.closedAt !== undefined && snapshot.closedByMemberId !== undefined ?
+    {snapshotId:snapshot.id,closedAt:snapshot.closedAt,closedByMemberId:snapshot.closedByMemberId} : null;
+  return {mode,today,dailyTime,due,days,final,snapshots:rows.snapshots,payments:rows.payments,closure,
+    canClose:!!snapshot && snapshotCanClose(snapshot,rows.payments,final)};
 }
 
-export function writeSnapshot({s,trip,rows,memberId,at}: Context, {type,date}: SettlementCommand): string {
+function snapshotResult({s,trip,rows}: Context, date: string | null): SettlementResult {
+  const balances = emptyBalances(tripMembers(s,trip.id).map(m => m.id));
+  let spentKrw = 0;
+  for (const expense of rows.expenses) {
+    if (expense.status !== 'active' || (date !== null && expense.localDate > date)) continue;
+    addExpenseBalance(balances,expense);
+    spentKrw = safeSum(spentKrw,expense.amountKrw);
+  }
+  return calculateSettlement(spentKrw,balances.values(),rows.payments,date);
+}
+
+export function writeSnapshot(context: Context, command: SettlementCommand): string {
+  const {trip,rows,memberId,at} = context;
+  if (command.type === 'settlement.close') {
+    const snapshot = activeSnapshot(rows,null);
+    if (!snapshot || !snapshotCanClose(snapshot,rows.payments,snapshotResult(context,null))) throw failure('conflict');
+    snapshot.closedAt = at;
+    snapshot.closedByMemberId = memberId;
+    return snapshot.id;
+  }
+  const {type,date} = command;
   const current = activeSnapshot(rows,date);
   if (date !== null && (trip.settlementMode !== 'daily' || activeSnapshot(rows,null))) throw failure('conflict');
   if (type === 'settlement.reopen') {
@@ -66,17 +100,10 @@ export function writeSnapshot({s,trip,rows,memberId,at}: Context, {type,date}: S
     return invalid('date');
   }
   if (current || rows.snapshots.length >= 64) throw failure('conflict');
-  const balances = emptyBalances(tripMembers(s,trip.id).map(m => m.id));
-  let spentKrw = 0;
-  for (const expense of rows.expenses) {
-    if (expense.status !== 'active' || (date !== null && expense.localDate > date)) continue;
-    addExpenseBalance(balances,expense);
-    spentKrw = safeSum(spentKrw,expense.amountKrw);
-  }
   const id = randomUUID();
   rows.snapshots.push({id,date,sourceRevision:trip.revision,expenseRevision:rows.expenseRevision,
     confirmedPaymentRevision:rows.confirmedPaymentRevision,createdAt:at,createdByMemberId:memberId,
-    result:calculateSettlement(spentKrw,balances.values(),rows.payments,date),reopenedAt:null,reopenedByMemberId:null});
+    result:snapshotResult(context,date),reopenedAt:null,reopenedByMemberId:null});
   return id;
 }
 
@@ -85,6 +112,7 @@ function forbidden(): never {
 }
 
 export function writePayment({s,trip,rows,memberId,at}: Context, cmd: PaymentCommand): string {
+  assertSettlementOpen(rows);
   const revision = trip.revision + 1;
   if (cmd.type === 'payment.report') {
     const recipient = s.members.get(cmd.toMemberId);

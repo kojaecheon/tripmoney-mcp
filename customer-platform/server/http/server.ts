@@ -57,7 +57,9 @@ const files: Record<string, { name: string; type: string }> = {
   '/ledger/forms.mjs': { name: 'ledger/forms.mjs', type: 'text/javascript; charset=utf-8' },
   '/ledger/itinerary-view.mjs': { name: 'ledger/itinerary-view.mjs', type: 'text/javascript; charset=utf-8' },
   '/ledger/expenses-view.mjs': { name: 'ledger/expenses-view.mjs', type: 'text/javascript; charset=utf-8' },
+  '/ledger/expense-intake.mjs': { name: 'ledger/expense-intake.mjs', type: 'text/javascript; charset=utf-8' },
   '/ledger/settlement-view.mjs': { name: 'ledger/settlement-view.mjs', type: 'text/javascript; charset=utf-8' },
+  '/ledger/settlement-share.mjs': { name: 'ledger/settlement-share.mjs', type: 'text/javascript; charset=utf-8' },
   '/maps/controller.mjs': {name:'maps/controller.mjs',type:'text/javascript; charset=utf-8'},
   '/maps/validation.mjs': {name:'maps/validation.mjs',type:'text/javascript; charset=utf-8'},
   '/maps/view.mjs': {name:'maps/view.mjs',type:'text/javascript; charset=utf-8'},
@@ -91,7 +93,7 @@ export function createCustomerAuthServer({ config, authService, identityService,
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
     if(nonce){res.setHeader('Content-Security-Policy',mapsCsp(nonce));res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');}
     const json = (status: number, value?: unknown) => {
       if(res.destroyed||res.writableEnded)return;
