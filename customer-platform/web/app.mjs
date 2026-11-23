@@ -1,7 +1,7 @@
 import { createApi } from './api.mjs';
 import { createAuthController } from './auth/controller.mjs';
 import { renderAuth } from './auth/view.mjs';
-import { createTravelController, readInviteFragment } from './travel/controller.mjs';
+import { createTravelController, readInviteFragment, readSharedTripFragment } from './travel/controller.mjs';
 import { renderTravel } from './travel/view.mjs';
 import { renderInvite } from './invites/view.mjs';
 import { createLedgerController, createTravelRefreshQueue, createTripChangesController } from './ledger/controller.mjs';
@@ -37,8 +37,10 @@ const authApi = {
 const authRoot = document.getElementById('auth');
 const travelRoot = document.getElementById('travel');
 const inviteRoot = document.getElementById('received-invite');
+const sharedTripNotice = document.getElementById('shared-trip-notice');
 let auth, authView, travelView, inviteView, ledgerView, unsubscribeAuth;
 let disposed = false, accountId = null;
+let requestedTrip = readSharedTripFragment(window.location), openingSharedTrip = false;
 
 function reconnect() {
   queueMicrotask(() => { if (!disposed) connectAuth(); });
@@ -90,15 +92,55 @@ function consumeFragment(initial = false) {
   const hasToken = new URLSearchParams(window.location.hash.slice(1)).has('t');
   if (hasToken || initial) void travel.setInviteToken(readInviteFragment(window.location, window.history));
 }
-function onHashChange() { consumeFragment(); }
+function showSharedTripNotice(message) {
+  if (!sharedTripNotice) return;
+  sharedTripNotice.textContent = message;
+  sharedTripNotice.hidden = !message;
+}
+function openSharedTrip() {
+  const state = travel.state;
+  if (!requestedTrip || openingSharedTrip || !state.accountId || !state.tripsLoaded || state.busy || state.pendingKind || state.error) return;
+  const tripId = requestedTrip;
+  if (!state.trips.some(trip => trip.id === tripId)) {
+    requestedTrip = null;
+    showSharedTripNotice('이 계정에서 열 수 있는 여행이 아닙니다. 초대한 사람에게 별도 초대 링크를 요청해 주세요.');
+    return;
+  }
+  showSharedTripNotice('');
+  if (state.selectedTripId === tripId) {
+    requestedTrip = null;
+    return;
+  }
+  openingSharedTrip = true;
+  void travel.selectTrip(tripId).then(opened => {
+    openingSharedTrip = false;
+    if (opened && requestedTrip === tripId && travel.state.selectedTripId === tripId) requestedTrip = null;
+    if (!disposed && requestedTrip && requestedTrip !== tripId) openSharedTrip();
+  });
+}
+function onHashChange() {
+  consumeFragment();
+  requestedTrip = readSharedTripFragment(window.location);
+  showSharedTripNotice('');
+  openSharedTrip();
+}
+function skipToSharedTripContent(event) {
+  if (!readSharedTripFragment(window.location) || !event.target?.closest?.('.skip-link')) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+  event.preventDefault();
+  main.focus();
+}
 consumeFragment(true);
 window.addEventListener('hashchange', onHashChange);
+document.addEventListener('click', skipToSharedTripContent);
 
 const unsubscribeTravel = travel.subscribe(state => {
   travelView = renderTravel(travelRoot, state, travel);
   inviteView = renderInvite(inviteRoot, state, travel);
   void ledger.setContext(state.accountId, state.trip);
   travelRefresh.sync();
+  openSharedTrip();
 });
 const unsubscribeLedger = ledger.subscribe(state => {
   changes.setContext({accountId:state.accountId,tripId:state.tripId,revision:state.ledger?.revision ?? null});
@@ -136,6 +178,8 @@ function connectAuth() {
     const next = signedIn ? state.me.userId : null;
     if (accountId !== next) {
       accountId = next;
+      requestedTrip = readSharedTripFragment(window.location);
+      showSharedTripNotice('');
       if (!next) void ledger.setContext(null, null);
       void travel.setAccount(next);
       if (next) document.getElementById('travel-title')?.focus();
@@ -183,6 +227,7 @@ function cleanup(event) {
   window.removeEventListener('focus', onVisible);
   window.removeEventListener('online', onConnectivity);
   window.removeEventListener('offline', onConnectivity);
+  document.removeEventListener('click', skipToSharedTripContent);
   document.removeEventListener('visibilitychange', onVisible);
   unsubscribeAuth?.();
   unsubscribeTravel();

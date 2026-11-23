@@ -15,7 +15,7 @@ export const actionLabels = {
   'schedule.adopt': '추천 일정 선택 저장',
   'schedule.reorder': '일정 순서 변경', 'expense.create': '경비 등록', 'expense.update': '경비 수정',
   'expense.cancel': '경비 취소', 'fx.update': '환율 변경',
-  'settlement.finalize': '정산 확정', 'settlement.reopen': '정산 재개',
+  'settlement.finalize': '정산 확정', 'settlement.reopen': '정산 재개', 'settlement.close': '여행 정산 마무리',
   'payment.report': '지급 기록', 'payment.confirm': '받은 지급 확인',
   'payment.requestVoid': '지급 취소 요청', 'payment.confirmVoid': '지급 취소 확인',
   create: '여행 생성', update: '여행 설정 변경', manage: '동행자 변경',
@@ -37,6 +37,11 @@ export function settlementAction(settlement, date) {
   if (!settlement || (date !== null && (settlement.mode !== 'daily' || date > settlement.today ||
     !settlement.days.some(row => row.date === date) || activeSnapshot(settlement, null)))) return null;
   return activeSnapshot(settlement, date) ? 'settlement.reopen' : 'settlement.finalize';
+}
+export function permitsSettlementAction(settlement, type, date) {
+  return type === 'settlement.close'
+    ? date === null && settlement?.canClose === true
+    : type === settlementAction(settlement, date);
 }
 const activeMe = ledger => ledger.members.find(row => row.active && row.isMe)?.id;
 export const paymentRecipients = ledger => ledger.members.filter(row => row.active && !row.isMe && row.role !== 'viewer');

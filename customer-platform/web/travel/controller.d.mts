@@ -1,8 +1,9 @@
 import type { IdentityApi } from '../api.mjs';
 import type { TripInput } from '../../core/contracts.js';
 import type { TripDTO, MemberDTO, InviteDTO, InviteInspection, TripSettings } from '../../server/identity/contracts.js';
+export function readSharedTripFragment(location: {pathname: string; hash: string}): string | null;
 export interface TravelState {
- accountId: string|null; trips: TripDTO[]; selectedTripId:string|null; trip:TripDTO|null; members:MemberDTO[]; invites:InviteDTO[];
+ accountId: string|null; trips: TripDTO[]; tripsLoaded:boolean; selectedTripId:string|null; trip:TripDTO|null; members:MemberDTO[]; invites:InviteDTO[];
  canManage:boolean; writesBlocked:boolean; createOpen:boolean; createDraft:TripInput; settingsDraft:Partial<TripSettings>;
  invite:InviteInspection|null; inviteNotice:string; alias:string; inviteRole:'editor'|'viewer'; busy:string|null;
  error:{code:string;message:string;field?:string;scope?:string;reason?:'alias_taken'|'member_limit'}|null; status:string; conflict:{latestChecked:boolean;revision?:number;reason?:'alias_taken'|'member_limit'}|null; pendingKind:string|null;

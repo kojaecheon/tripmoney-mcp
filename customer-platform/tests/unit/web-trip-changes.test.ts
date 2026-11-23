@@ -159,7 +159,7 @@ test('app gates change requests on public config and refreshes through existing 
     './api.mjs':prefix+'export const createApi=()=>{f.startup.push("api");return f.api;};',
     './auth/email-link.mjs':prefix+'f.callbackLoads.push("email-link");export const completeEmailLink=async()=>{f.startup.push("callback");return {status:f.callbackStatus};};',
     './auth/controller.mjs':prefix+'export const createAuthController=()=>f.auth;',
-    './travel/controller.mjs':prefix+'export const createTravelController=()=>f.travel;export const readInviteFragment=()=>null;',
+    './travel/controller.mjs':prefix+'export const createTravelController=()=>f.travel;export const readInviteFragment=()=>null;export const readSharedTripFragment=()=>null;',
     './ledger/controller.mjs':prefix+`export {createTripChangesController} from ${JSON.stringify(pathToFileURL(new URL('../../web/ledger/controller.mjs',import.meta.url).pathname).href)};export const createLedgerController=()=>f.ledger;export const createTravelRefreshQueue=()=>f.queue;`,
     './maps/view.mjs':prefix+'export const mountMaps=()=>f.widget;export const createGoogleSdkLoader=()=>null;',
     './drafts/view.mjs':prefix+'export const mountDrafts=()=>f.widget;',

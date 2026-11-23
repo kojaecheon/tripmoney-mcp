@@ -22,7 +22,13 @@ export function readInviteFragment(location, history) {
  const token = params.get('t');
  return token && token.length <= 2048 && /^[A-Za-z0-9_.-]+$/.test(token) ? token : null;
 }
-function fresh() { return {accountId:null,trips:[],selectedTripId:null,trip:null,members:[],invites:[],canManage:false,writesBlocked:false,createOpen:false,createDraft:defaultTripDraft(),settingsDraft:{},invite:null,inviteNotice:'',alias:'',inviteRole:'editor',busy:null,error:null,status:'',conflict:null,pendingKind:null,confirmMemberId:null,shareOpen:false,shareStatus:''}; }
+export function readSharedTripFragment(location) {
+ if (location.pathname !== '/') return null;
+ const match = /^#trip=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(location.hash);
+ const id = match?.[1];
+ return id && id !== '00000000-0000-0000-0000-000000000000' ? id : null;
+}
+function fresh() { return {accountId:null,trips:[],tripsLoaded:false,selectedTripId:null,trip:null,members:[],invites:[],canManage:false,writesBlocked:false,createOpen:false,createDraft:defaultTripDraft(),settingsDraft:{},invite:null,inviteNotice:'',alias:'',inviteRole:'editor',busy:null,error:null,status:'',conflict:null,pendingKind:null,confirmMemberId:null,shareOpen:false,shareStatus:''}; }
 export function createTravelController(api, {onUnauthorized = () => {}, makeOperationId = () => globalThis.crypto.randomUUID()} = {}) {
  let state=fresh(); let epoch=0; let destroyed=false; let token=null; let shareUrl=null; let pending=null; let retainedDraft=null; let settingsBase=null;
  const listeners=new Set();
@@ -43,7 +49,7 @@ export function createTravelController(api, {onUnauthorized = () => {}, makeOper
    publish({selectedTripId:id,trip,members,invites,canManage,settingsDraft:keep?state.settingsDraft:settingsOf(trip),shareOpen:canManage&&state.shareOpen});
   });
  }
- async function list(e) { const trips=await api.listTrips(state.accountId); if(current(e))publish({trips}); }
+ async function list(e) { const trips=await api.listTrips(state.accountId); if(current(e))publish({trips,tripsLoaded:true}); }
  async function failure(thrown,e,allowRecovery=true,context={}) {
   if(!current(e))return;
   const error=thrown instanceof RequestFailure ? thrown.error : thrown;

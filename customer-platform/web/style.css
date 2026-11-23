@@ -158,6 +158,7 @@ h4 { margin: 0 0 8px; }
 .ledger-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
 .ledger .field { margin-bottom: 14px; }
 .ledger-editor { min-width: 0; margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.ledger-expense-preview { display: block; max-inline-size: 100%; max-block-size: 24rem; object-fit: contain; }
 .ledger-editor h5 { margin-bottom: 12px; }
 .ledger-editor .button-row, .ledger-row .button-row, .ledger-rate-choice { margin-top: 12px; }
 .ledger-list { padding: 0; margin: 10px 0 0; list-style: none; }

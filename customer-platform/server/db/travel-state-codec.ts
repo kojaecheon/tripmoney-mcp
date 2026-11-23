@@ -57,6 +57,13 @@ export function decodeTravelState(value: unknown): TravelState {
     if (!state.trips.has(tripId)) throw failure('unavailable');
     for (const field of ['items','expenses','snapshots','payments'] as const) rows(ledger[field]);
     record(ledger.fx);
+    for (const snapshot of ledger.snapshots) {
+      const {date,closedAt,closedByMemberId} = record(snapshot);
+      if (closedAt === undefined && closedByMemberId === undefined) continue;
+      const timestamp = typeof closedAt === 'string' ? Date.parse(closedAt) : NaN;
+      if (date !== null || !Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== closedAt ||
+          state.members.get(id(closedByMemberId))?.tripId !== tripId) throw failure('unavailable');
+    }
   }
   for (const audit of state.audits) if (!state.trips.has(record(audit).tripId as string)) throw failure('unavailable');
   for (const receipt of state.receipts.values()) {

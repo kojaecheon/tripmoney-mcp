@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { test, type TestContext } from 'node:test';
 import type { TripInput } from '../../core/contracts.js';
 import type { ExpenseInput, LedgerCommand } from '../../core/ledger/contracts.js';
+import { decodeTravelState, encodeTravelState } from '../../server/db/travel-state-codec.js';
 import { createLocalRuntime } from '../../server/local/runtime.js';
 
 const day = '2026-11-01';
@@ -310,4 +311,157 @@ test('snapshots record independent expense and confirmed payment versions', asyn
   assert.equal(snapshots.at(-1)?.expenseRevision,expense.tripRevision);
   assert.deepEqual(snapshots[1],pending);
   assert.equal(snapshots[2]?.confirmedPaymentRevision,confirmed.tripRevision);
+});
+
+test('only an owner closes an active final snapshot, and a retry keeps one closure event', async t => {
+  const f = await fixture(t), editor = await f.add('editor'), viewer = await f.add('viewer','viewer');
+  const close = {type:'settlement.close'} as const;
+  await f.run({type:'settlement.finalize',date:day});
+  assert.equal((await f.get()).settlement.canClose,false);
+  await assert.rejects(f.run(close),{code:'conflict'});
+  const final = await f.run({type:'settlement.finalize',date:null});
+  const before = await f.get();
+  assert.equal(before.settlement.canClose,true);
+  assert.equal(before.settlement.closure,null);
+  await assert.rejects(f.run(close,editor.actor),{code:'forbidden'});
+  await assert.rejects(f.run(close,viewer.actor),{code:'forbidden'});
+  const operationId = randomUUID();
+  f.setClock('2026-11-02T01:00:00Z');
+  const closed = await f.ledgerService.execute(f.owner,f.id,close,before.revision,operationId);
+  assert.deepEqual(closed,{value:{targetId:final.value.targetId},tripRevision:before.revision+1,replayed:false});
+  assert.deepEqual(await f.ledgerService.execute(f.owner,f.id,close,before.revision,operationId),{...closed,replayed:true});
+  await assert.rejects(f.run(close),{code:'conflict'});
+  const after = await f.get(viewer.actor);
+  assert.equal(after.settlement.canClose,false);
+  assert.deepEqual(after.settlement.closure,{snapshotId:final.value.targetId,closedAt:'2026-11-02T01:00:00.000Z',
+    closedByMemberId:f.ownerId});
+  assert.deepEqual(after.settlement.snapshots[0],before.settlement.snapshots[0]);
+  assert.deepEqual(after.settlement.snapshots[1]?.result,before.settlement.snapshots[1]?.result);
+  assert.deepEqual(after.history.filter(h=>h.action === 'settlement.close'),[{action:'settlement.close',
+    targetId:final.value.targetId,at:'2026-11-02T01:00:00.000Z',memberId:f.ownerId,revision:closed.tripRevision}]);
+});
+
+test('close checks live balances and pending payments without changing the frozen final result', async t => {
+  const f = await fixture(t), editor = await f.add('editor');
+  const close = {type:'settlement.close'} as const;
+  await f.run({type:'expense.create',input:{...f.expense,amount:'1000',splitIds:[f.ownerId,editor.memberId]}});
+  await f.run({type:'settlement.finalize',date:day});
+  const report = async (amountKrw: number) => (await f.run({type:'payment.report',toMemberId:f.ownerId,amountKrw},
+    editor.actor)).value.targetId!;
+  const first = await report(200);
+  await f.changePayment('payment.confirm',first);
+  await f.run({type:'settlement.finalize',date:null});
+  assert.equal((await f.get()).settlement.canClose,false);
+  await assert.rejects(f.run(close),{code:'conflict'});
+  await f.changePayment('payment.confirm',await report(300));
+  const pending = await report(100);
+  const withPending = await f.get();
+  assert.deepEqual(withPending.settlement.final.transfers,[]);
+  assert.equal(withPending.settlement.canClose,false);
+  await assert.rejects(f.run(close),{code:'conflict'});
+  await f.changePayment('payment.requestVoid',pending,editor.actor);
+  assert.equal((await f.get()).settlement.canClose,true);
+  await f.changePayment('payment.requestVoid',first);
+  assert.deepEqual((await f.get()).settlement.final.transfers,[]);
+  assert.equal((await f.get()).settlement.canClose,false);
+  await assert.rejects(f.run(close),{code:'conflict'});
+  await f.changePayment('payment.confirmVoid',first,editor.actor);
+  assert.equal((await f.get()).settlement.canClose,false);
+  await f.changePayment('payment.confirm',await report(200));
+  assert.equal((await f.get()).settlement.canClose,true);
+  await f.run(close);
+  const {settlement} = await f.get();
+  assert.deepEqual(settlement.final.transfers,[]);
+  const transfer = (amountKrw: number) => [{fromMemberId:editor.memberId,toMemberId:f.ownerId,amountKrw}];
+  assert.deepEqual(settlement.snapshots[0]?.result.transfers,transfer(500));
+  assert.deepEqual(settlement.snapshots[1]?.result.transfers,transfer(300));
+});
+
+test('closure locks financial writes until reopening and preserves the old closure in history', async t => {
+  const f = await fixture(t), editor = await f.add('editor');
+  const expense = await f.run({type:'expense.create',input:f.expense});
+  const payment = await f.run({type:'payment.report',toMemberId:f.ownerId,amountKrw:10},editor.actor);
+  const paymentId = payment.value.targetId!;
+  await f.changePayment('payment.requestVoid',paymentId,editor.actor);
+  await f.run({type:'settlement.finalize',date:null});
+  await f.run({type:'settlement.close'});
+  const before = await f.get(), previous = before.settlement.snapshots[0]!;
+  const locked = {code:'validation',field:'settlementLocked'};
+  const report = {type:'payment.report',toMemberId:f.ownerId,amountKrw:10} as const;
+  const fx = {type:'fx.update',rateMilli:40000,source:'manual'} as const;
+  await assert.rejects(f.run(report,editor.actor),locked);
+  for (const type of ['payment.confirm','payment.requestVoid','payment.confirmVoid'] as const) {
+    await assert.rejects(f.changePayment(type,paymentId),locked);
+  }
+  await assert.rejects(f.run({type:'expense.cancel',id:expense.value.targetId!}),locked);
+  await assert.rejects(f.run(fx),locked);
+  assert.deepEqual(await f.get(),before);
+  await assert.rejects(f.run({type:'settlement.reopen',date:null},editor.actor),{code:'forbidden'});
+  f.setClock('2026-11-02T01:00:00Z');
+  await f.run({type:'settlement.reopen',date:null});
+  const reopened = (await f.get()).settlement;
+  assert.equal(reopened.closure,null);
+  assert.equal(reopened.canClose,false);
+  assert.deepEqual(reopened.snapshots[0],{...previous,reopenedAt:'2026-11-02T01:00:00.000Z',reopenedByMemberId:f.ownerId});
+  await f.run(fx);
+  await f.run({type:'expense.cancel',id:expense.value.targetId!});
+  const newPayment = await f.run(report,editor.actor);
+  await f.changePayment('payment.requestVoid',newPayment.value.targetId!,editor.actor);
+  const final = await f.run({type:'settlement.finalize',date:null});
+  await f.run({type:'settlement.close'});
+  const latest = (await f.get()).settlement;
+  assert.equal(latest.closure?.snapshotId,final.value.targetId);
+  assert.deepEqual(latest.snapshots[0],reopened.snapshots[0]);
+  assert.equal(latest.payments[0]?.id,paymentId);
+});
+
+test('close and payment writes reconcile with one current trip revision', async t => {
+  const f = await fixture(t), editor = await f.add('editor');
+  await f.run({type:'settlement.finalize',date:null});
+  const close = {type:'settlement.close'} as const;
+  const report = {type:'payment.report',toMemberId:f.ownerId,amountKrw:100} as const;
+  const revision = (await f.get()).revision;
+  const [payment,staleClosure] = await Promise.allSettled([
+    f.ledgerService.execute(editor.actor,f.id,report,revision,randomUUID()),
+    f.ledgerService.execute(f.owner,f.id,close,revision,randomUUID()),
+  ]);
+  assert.equal(payment.status,'fulfilled');
+  assert.equal(staleClosure.status,'rejected');
+  if (payment.status !== 'fulfilled' || staleClosure.status !== 'rejected') throw new Error('unexpected race outcome');
+  assert.equal(staleClosure.reason.code,'conflict');
+  await assert.rejects(f.run(close),{code:'conflict'});
+  await f.changePayment('payment.requestVoid',payment.value.value.targetId!,editor.actor);
+  const current = (await f.get()).revision;
+  const [first,duplicate] = await Promise.allSettled([
+    f.ledgerService.execute(f.owner,f.id,close,current,randomUUID()),
+    f.ledgerService.execute(f.owner,f.id,close,current,randomUUID()),
+  ]);
+  assert.equal(first.status,'fulfilled');
+  assert.equal(duplicate.status,'rejected');
+  if (duplicate.status === 'rejected') assert.equal(duplicate.reason.code,'conflict');
+  assert.equal((await f.get()).history.filter(h=>h.action === 'settlement.close').length,1);
+});
+
+test('the travel codec preserves legacy snapshots and requires a complete final closure marker', async t => {
+  const f = await fixture(t);
+  await f.run({type:'settlement.finalize',date:null});
+  const before = await f.get();
+  const trip = {...await f.identityService.getTrip(f.owner,f.id),ownerUserId:f.owner.userId};
+  const member = {id:f.ownerId,tripId:f.id,userId:f.owner.userId,role:'owner',active:true};
+  const ledger = {items:before.items,expenses:before.expenses,fx:before.fx,payments:[],expenseRevision:0,
+    confirmedPaymentRevision:0,snapshots:before.settlement.snapshots};
+  const stored = {trips:[trip],members:[member],invites:[],receipts:[],audits:[],ledgers:[[f.id,ledger]]};
+  assert.deepEqual(encodeTravelState(decodeTravelState(stored)),stored);
+
+  await f.run({type:'settlement.close'});
+  await f.run({type:'settlement.reopen',date:null});
+  const historical = (await f.get()).settlement.snapshots[0]!;
+  function withSnapshot(snapshot: unknown) {
+    return {...stored,ledgers:[[f.id,{...ledger,snapshots:[snapshot]}]]};
+  }
+  assert.deepEqual(encodeTravelState(decodeTravelState(withSnapshot(historical))),withSnapshot(historical));
+  for (const patch of [{closedByMemberId:undefined},{closedAt:undefined},{closedAt:'bad date'},{date:day},
+      {closedByMemberId:randomUUID()}]) {
+    assert.throws(()=>decodeTravelState(withSnapshot({...historical,...patch})),{code:'unavailable'});
+  }
 });

@@ -2,7 +2,7 @@ import { ApiError, parsePlaceReference } from '../api.mjs';
 import {
   blankExpense, blankPayment, blankSchedule, dayItems, draftCommand, expenseFields, expenseLabels,
   fxFields, fxLabels, fxName, itemName, memberName, paymentAction, scheduleFields, scheduleLabels,
-  scopeOf, settlementAction, tripDates, validation,
+  scopeOf, permitsSettlementAction, tripDates, validation,
 } from './forms.mjs';
 
 const scopes = ['schedule', 'expense', 'fx', 'payment'];
@@ -30,6 +30,9 @@ const safeError = (error, scope) => {
     toMemberId: '받는 동행자를 다시 확인해 주세요.',
     amountKrw: '보낸 금액을 1원부터 1조 원까지 원 단위로 입력해 주세요.',
   };
+  if (safe.field === 'settlementLocked' && scope !== 'expense') {
+    fieldMessages.settlementLocked = '소유자가 최종 정산을 재개한 뒤 변경할 수 있습니다.';
+  }
   const message = safe.code === 'conflict' && needsFreshAction(scope)
     ? '다른 변경이 먼저 저장되었습니다. 최신 장부를 확인한 뒤 정산 또는 지급 작업을 다시 시작해 주세요.'
     : fieldMessages[safe.field] ?? messages[safe.code] ?? safe.message;
@@ -100,11 +103,11 @@ export function createLedgerController(api, {
       (settlement.today < ledger.startDate ? ledger.startDate : settlement.today > ledger.endDate ? ledger.endDate : settlement.today));
     state = {
       accountId, tripId: trip?.id ?? null, ledger, day: session.day, filters: {...session.filters},
-      canEdit: permitted(role(), 'schedule'), canSetFx: permitted(role(), 'fx'),
+      canEdit: permitted(role(), 'schedule'), canSetFx: !settlement?.closure && permitted(role(), 'fx'),
       canSettle: Boolean(settlement && permitted(role(), 'settlement')),
       settlementDate: settlementDate || '',
       settlementReview: settlement && review ? {...review, stale: review.revision !== ledger.revision ||
-        review.type !== settlementAction(settlement, review.date)} : null,
+        !permitsSettlementAction(settlement, review.type, review.date)} : null,
       busy: request === 'poll' ? null : request, error, status, confirmation: session.confirm,
       scheduleDraft: session.forms.schedule.fields, scheduleId: session.forms.schedule.id,
       expenseDraft: session.forms.expense.fields, expenseId: session.forms.expense.id, fxDraft: session.forms.fx.fields,
@@ -239,6 +242,7 @@ export function createLedgerController(api, {
   }
   function allowed(scope) {
     return Boolean(ledger && (!needsFreshAction(scope) || ledger.settlement) && permitted(role(), scope) &&
+      !(ledger.settlement?.closure && (scope === 'expense' || scope === 'payment' || scope === 'fx')) &&
       request !== 'write' && !destroyed);
   }
   function edit(scope, id = null, itineraryId) {
@@ -346,9 +350,9 @@ export function createLedgerController(api, {
   function changeSettlement(type, date, revision = ledger?.revision) {
     interruptPoll();
     if (request || !allowed('settlement') || session.pending || session.conflict || revision !== ledger.revision ||
-      type !== settlementAction(ledger.settlement, date)) return Promise.resolve(false);
+      !permitsSettlementAction(ledger.settlement, type, date)) return Promise.resolve(false);
     session.settlementReview = null;
-    return write({type, date}, revision);
+    return write(type === 'settlement.close' ? {type} : {type, date}, revision);
   }
 
   const controller = {
@@ -485,7 +489,8 @@ export function createLedgerController(api, {
     savePayment: () => save('payment'),
     changeSettlement,
     reviewSettlement(type, date) {
-      if (!allowed('settlement') || session.pending || session.conflict || type !== settlementAction(ledger.settlement, date)) return;
+      if (!allowed('settlement') || session.pending || session.conflict ||
+        !permitsSettlementAction(ledger.settlement, type, date)) return;
       session.settlementReview = {type, date, revision: ledger.revision};
       publish();
     },

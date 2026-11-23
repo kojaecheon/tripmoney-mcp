@@ -182,6 +182,8 @@ test('daily and final settlement share the ledger and apply only recipient-confi
   const confirmedPaymentRevision = current.revision;
   const finalId = (await write(final)).value.targetId;
   assert.deepEqual(current.settlement.final.transfers, owing(300));
+  const close = {type: 'settlement.close'};
+  fixed(await f.send(commands, envelope(close, current.revision), owner.jar), 409, 'conflict');
   fixed(await f.send(commands, envelope({ type: 'expense.create', input: nextDay }, current.revision), guest.jar), 422, 'validation', 'settlementLocked');
 
   now = midnight + 17 * 3_600_000 + 60_000;
@@ -195,6 +197,24 @@ test('daily and final settlement share the ledger and apply only recipient-confi
   assert.deepEqual(frozenFinal?.result.transfers, owing(300));
   assert.equal(frozenFinal?.expenseRevision, expenseRevision);
   assert.equal(frozenFinal?.confirmedPaymentRevision, confirmedPaymentRevision);
+
+  const closeRequest = envelope(close, current.revision);
+  fixed(await f.send(commands, closeRequest, guest.jar), 403, 'forbidden');
+  assert.equal(ok<LedgerChange>(await f.send(commands, closeRequest, owner.jar)).value.targetId, finalId);
+  assert.equal(ok<LedgerChange>(await f.send(commands, closeRequest, owner.jar)).replayed, true);
+  current = await read(guest.jar);
+  assert.equal(current.settlement.closure?.snapshotId, finalId);
+  assert.equal(current.settlement.closure?.closedByMemberId, ownerMember.id);
+  assert.equal(current.settlement.canClose, false);
+  fixed(await f.send(commands, envelope(paymentCommand('payment.requestVoid', paymentId), current.revision), guest.jar),
+    422, 'validation', 'settlementLocked');
+  await write({ type: 'settlement.reopen', date: null });
+  assert.equal(current.settlement.closure, null);
+  const reopenedFinal = current.settlement.snapshots.find(row => row.id === finalId);
+  assert.ok(reopenedFinal?.closedAt && reopenedFinal.reopenedAt);
+  assert.deepEqual(reopenedFinal.result, frozenFinal?.result);
+  await write(final);
+
   await write(paymentCommand('payment.requestVoid', paymentId), guest.jar);
   assert.deepEqual(current.settlement.final.transfers, []);
   const confirmVoid = paymentCommand('payment.confirmVoid', paymentId);
@@ -481,7 +501,7 @@ test('routes only the two ledger endpoints and keeps an explicit static allowlis
     if (method === 'HEAD') assert.equal(response.status, 404);
     else fixed(response, 404, 'not_found');
   }
-  for (const name of ['controller.mjs', 'view.mjs', 'forms.mjs', 'itinerary-view.mjs', 'expenses-view.mjs', 'settlement-view.mjs']) {
+  for (const name of ['controller.mjs', 'view.mjs', 'forms.mjs', 'itinerary-view.mjs', 'expenses-view.mjs', 'expense-intake.mjs', 'settlement-view.mjs', 'settlement-share.mjs']) {
     await writeFile(join(root, 'ledger', name), 'export {};');
     const response = await f.send('/ledger/' + name);
     assert.equal(response.status, 200);

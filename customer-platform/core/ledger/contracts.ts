@@ -32,6 +32,7 @@ export type LedgerCommand =
   | { type: 'expense.cancel'; id: string }
   | { type: 'settlement.finalize'; date: string | null }
   | { type: 'settlement.reopen'; date: string | null }
+  | { type: 'settlement.close' }
   | { type: 'payment.report'; toMemberId: string; amountKrw: number }
   | { type: 'payment.confirm'; id: string; expectedPaymentRevision: number }
   | { type: 'payment.requestVoid'; id: string; expectedPaymentRevision: number }
@@ -50,7 +51,9 @@ export type SettlementSnapshot = {
   id: string; date: string | null; sourceRevision: number; expenseRevision: number; confirmedPaymentRevision: number;
   createdAt: string; createdByMemberId: string;
   result: SettlementResult; reopenedAt: string | null; reopenedByMemberId: string | null;
+  closedAt?: string; closedByMemberId?: string;
 };
+export type SettlementClosure = { snapshotId: string; closedAt: string; closedByMemberId: string };
 export type PaymentDTO = {
   id: string; fromMemberId: string; toMemberId: string; amountKrw: number; revision: number;
   status: 'reported' | 'confirmed' | 'void_requested' | 'voided';
@@ -62,6 +65,7 @@ export type SettlementDTO = {
   mode: Mode; today: string; dailyTime: string; due: boolean;
   days: { date: string; spentKrw: number; current: SettlementResult }[];
   final: SettlementResult; snapshots: SettlementSnapshot[]; payments: PaymentDTO[];
+  closure: SettlementClosure | null; canClose: boolean;
 };
 export type LedgerSummary = {
   allocatedKrw: number; spentKrw: number; remainingKrw: number; unassignedKrw: number;

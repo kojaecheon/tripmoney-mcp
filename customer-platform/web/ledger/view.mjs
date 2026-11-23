@@ -243,6 +243,7 @@ function mount(root, actions) {
   return {
     render,
     destroy() {
+      renderExpenses.destroy();
       for (const remove of removers) remove();
       root.replaceChildren();
       views.delete(root);

@@ -48,7 +48,8 @@ export function createPreparedRuntime(config:LiveConfig,deps:Dependencies,option
  const notifier=createTripChangeNotifier(),changesService=createTripChangesService(notifier);
  const {identityService,ledgerService}=createNotifyingServices({notifier,
   identityService:createIdentityService({repository:deps.repositories.identityRepository,inviteKeys:config.inviteKeys,activeKid:config.inviteKid,publicOrigin:config.http.publicOrigin}),
-  ledgerService:createLedgerService({repository:deps.repositories.ledgerRepository})});
+  // The incremental settlement SQL stays in reviewed/ until development DB verification is approved.
+  ledgerService:createLedgerService({repository:deps.repositories.ledgerRepository,closureEnabled:false})});
  const placeService=createPlaceService({ledgerService,provider:options.providers?.place??createSyntheticPlaceProvider()});
  const draftService=createDraftService({ledgerService,provider:options.providers?.ai??createSyntheticAiProvider(),now:now?()=>new Date(now()):undefined});
  const recommendationService=createRecommendationService({identityService,ledgerService,placeService,provider:options.providers?.recommendation??createSyntheticRecommendationProvider(),usageStore:deps.usageStore,now});
