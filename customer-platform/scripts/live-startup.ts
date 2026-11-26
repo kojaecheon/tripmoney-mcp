@@ -12,6 +12,7 @@ const providerNames=['CUSTOMER_PROVIDER_TEST_EMAIL','CUSTOMER_PROVIDER_TEST_PROJ
 const defaultPath=(name:string)=>fileURLToPath(new URL(`../${name}`,import.meta.url));
 export type LiveStartup={preflight:boolean;host:'127.0.0.1';port:number;config:LiveConfig;options:{
  databaseApproved:boolean;authApiApproved:boolean;mailDeliveryApproved:boolean;mailRecipient?:string;mailPermit?:LiveMailPermit;
+ enableSettlementClosure:boolean;
  kakao:{skillSecret:string;botId:'6af073a7c354b7fec3d2806b!'}}};
 /** Reads explicit private files only. No connections, file creation, SQL or child processes. */
 export function readLiveStartup(args:string[],environment:NodeJS.ProcessEnv):LiveStartup {
@@ -19,6 +20,7 @@ export function readLiveStartup(args:string[],environment:NodeJS.ProcessEnv):Liv
   const parsed=parseArgs({args,strict:true,allowPositionals:false,tokens:true,options:{
    preflight:{type:'boolean'},'approve-database':{type:'boolean'},'approve-auth-api':{type:'boolean'},
    'approve-kakao-development':{type:'boolean'},'approve-live-mail':{type:'boolean'},
+   'enable-settlement-closure':{type:'boolean'},
    'public-origin':{type:'string'},port:{type:'string'},'db-env':{type:'string'},'provider-env':{type:'string'},
    'keys-file':{type:'string'},'mail-permit':{type:'string'},'mail-recipient':{type:'string'}}});
   const named=parsed.tokens.filter(token=>token.kind==='option').map(token=>token.name);
@@ -50,6 +52,7 @@ export function readLiveStartup(args:string[],environment:NodeJS.ProcessEnv):Liv
    mailPermit:readLiveMailPermit(values['mail-permit']??defaultPath('.customer-live/mail-permit.json'),recipient)}:{};
   return {preflight,host:'127.0.0.1',port,config,options:{databaseApproved:values['approve-database']===true,
    authApiApproved:values['approve-auth-api']===true,mailDeliveryApproved:mail,...mailOptions,
+   enableSettlementClosure:values['enable-settlement-closure']===true,
    // Exact wire identity observed for this owned development channel, not a suffix normalizer.
    kakao:{skillSecret:secret,botId:'6af073a7c354b7fec3d2806b!'}}};
  } catch {return invalid();}
