@@ -45,12 +45,14 @@ async function verifySettlementClosure(pool:Pool) {
      ('customer_private.travel_transition_before_settlement_close(jsonb,jsonb,text,jsonb,uuid)', $2::text)
    ) as expected(signature, body_hash)
    join pg_catalog.pg_proc p on p.oid=pg_catalog.to_regprocedure(expected.signature)
+   join pg_catalog.pg_proc save on save.oid=pg_catalog.to_regprocedure('customer_private.travel_save(jsonb,jsonb,jsonb,text)')
    where p.proowner=pg_catalog.to_regrole('customer_writer')
      and not p.prosecdef and not p.proisstrict and p.proconfig=array['search_path=""']
      and not pg_catalog.has_function_privilege(p.oid, 'EXECUTE')
+     and pg_catalog.has_function_privilege(p.proowner, p.oid, 'EXECUTE')
      and not exists (select 1 from pg_catalog.aclexplode(coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))) acl
        where acl.grantee<>p.proowner)
-     and pg_catalog.has_function_privilege(pg_catalog.to_regprocedure('customer_private.travel_save(jsonb,jsonb,jsonb,text)'), 'EXECUTE') is true
+     and save.proowner=p.proowner and save.prosecdef and pg_catalog.has_function_privilege(save.oid, 'EXECUTE')
      and pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(p.prosrc, 'UTF8')), 'hex')=expected.body_hash`,
   [closureValidatorHash,preservedValidatorHash]);
  if(rows[0]?.settlement_closure!==true)throw blocked();

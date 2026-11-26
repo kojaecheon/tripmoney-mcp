@@ -95,7 +95,9 @@ test('the development runtime checks the approved function definitions only when
     assert.match(check.statement,/pg_catalog\.has_function_privilege/);
     assert.match(check.statement,/not p\.proisstrict/);
     assert.match(check.statement,/pg_catalog\.aclexplode/);
-    assert.match(check.statement,/has_function_privilege\(pg_catalog\.to_regprocedure\('customer_private\.travel_save/);
+    assert.match(check.statement,/has_function_privilege\(p\.proowner, p\.oid, 'EXECUTE'\)/);
+    assert.match(check.statement,/to_regprocedure\('customer_private\.travel_save/);
+    assert.match(check.statement,/save\.proowner=p\.proowner and save\.prosecdef/);
     assert.equal(check.params.filter(p=>typeof p==='string'&&/^[0-9a-f]{64}$/.test(p)).length,2);
    }
    assert.equal(runtime.httpConfig.mailDelivery,false);
