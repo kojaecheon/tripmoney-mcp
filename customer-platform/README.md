@@ -55,6 +55,6 @@ npm run test:http
 
 [DB 변경 이력](supabase/migrations/)과 [영구 저장 검토 SQL](supabase/reviewed/durable-store.sql)은 개발 DB 구조를 확인하는 자료다. SQL 적용은 백업과 대상 확인 후 별도로 수행한다. 기본 실행과 CI는 SQL을 적용하지 않는다.
 
-최종 마감은 로컬 체험에 활성화했다. 개발 DB 연결에서 활성화하기 전에 [정산 마감 증분 검토안](supabase/reviewed/settlement-closure.sql)의 적용과 복구를 검증한다.
+`tripmoney-customer-dev`에서 최종 마감까지 시험하려면 기존 `start:live` 실행 인자에 `--enable-settlement-closure`를 추가한다. 시작할 때 제한된 앱 DB 계정으로 [정산 마감 SQL](supabase/reviewed/settlement-closure.sql)에 해당하는 함수 정의와 권한을 확인한다. 일치하지 않으면 HTTP 서버를 열기 전에 종료한다. `--preflight`는 연결 없이 인자와 파일 구성을 확인하며, DB 검사는 실제 실행에서 수행한다. 플래그 없이 시작하면 DB 모드에서 최종 마감 실행이 비활성화된다.
 
 Chrome 로그인과 Mac 카카오톡 개발 채널에서 여행 연결, 경비 확인 저장, 중복 방지, 연결 해제, DB 재조회까지 개발 환경에서 검증했다. 지도와 AI 실제 호출은 후속 검증 범위다.

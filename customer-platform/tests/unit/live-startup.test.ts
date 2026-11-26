@@ -66,6 +66,20 @@ test('listen requires three explicit connection approvals and mail adds an envir
  assert.throws(()=>readLiveStartup([...mailArgs.slice(0,-1),otherPermit],mailEnvironment));
 });
 
+test('settlement closure is an explicit development startup option and preflight stays offline',async t=>{
+ const {readLiveStartup,startLiveServer}=await startupModule();const f=fixture(t);
+ const flag='--enable-settlement-closure';
+ const parse=(args:string[])=>readLiveStartup([...args,...f.args],{});
+ assert.equal(parse(['--preflight']).options.enableSettlementClosure,false);
+ const preflight=parse(['--preflight',flag]);
+ assert.equal(preflight.options.enableSettlementClosure,true);
+ assert.equal(await startLiveServer(preflight,{createRuntime:async()=>assert.fail('preflight attempted a connection')}),undefined);
+ assert.throws(()=>parse([flag]));
+ assert.throws(()=>parse(['--preflight',flag,flag]));
+ f.write('provider',{...f.provider,CUSTOMER_PROVIDER_TEST_PROJECT_REF:'other'});
+ assert.throws(()=>parse(['--preflight',flag]));
+});
+
 test('CLI preflight exits with synthetic local files and no external approval',t=>{
  const f=fixture(t);const result=spawnSync(process.execPath,['--import','tsx',fileURLToPath(new URL('../../scripts/start-live.ts',import.meta.url)),'--preflight',...f.args],{cwd:fileURLToPath(new URL('../../',import.meta.url)),env:{PATH:process.env.PATH},encoding:'utf8',timeout:5000});
  assert.equal(result.status,0);assert.match(result.stdout,/customer_live_preflight_ok/);assert.equal(result.stderr,'');assert.ok(!result.stdout.includes('PRIVATE_DB_VALUE'));

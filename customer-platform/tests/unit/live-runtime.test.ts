@@ -65,6 +65,64 @@ test('live runtime closes restricted pools when required SQL is absent without a
  await assert.rejects(createLiveRuntime(readLiveConfig(env()),{databaseApproved:true,authApiApproved:true,poolFactory:async()=>({app:pool,auth:pool}),fetcher:async()=>{throw new Error('provider must not run');}}),e=>e instanceof Error&&!e.message.includes('provider must not run'));
  assert.equal(ended,2);
 });
+
+test('a requested settlement closure requires a verified migration and closes both pools on mismatch',async()=>{
+ const config=readLiveConfig(env());
+ for (const marker of [undefined,false,'true']) {
+  let ended=0;
+  const pool={query:async()=>({rows:[{travel:true,channel:true,usage:true,settlement_closure:marker}]}),end:async()=>{ended++;}} as any;
+  await assert.rejects(createLiveRuntime(config,{databaseApproved:true,authApiApproved:true,enableSettlementClosure:true,
+   poolFactory:async()=>({app:pool,auth:pool}),fetcher:async()=>assert.fail('provider must not run')}),{code:'unavailable'});
+  assert.equal(ended,2);
+ }
+});
+
+test('the development runtime checks the approved function definitions only when requested',async()=>{
+ const config=readLiveConfig(env());
+ for (const enableSettlementClosure of [false,true]) {
+  const queries:{statement:string;params:unknown[]}[]=[];
+  const pool={query:async(statement:string,params:unknown[]=[])=>{
+   queries.push({statement,params});
+   return {rows:[{travel:true,channel:true,usage:true,settlement_closure:true}]};
+  },end:async()=>{}} as any;
+  const runtime=await createLiveRuntime(config,{databaseApproved:true,authApiApproved:true,enableSettlementClosure,
+   poolFactory:async()=>({app:pool,auth:pool}),fetcher:async()=>assert.fail('provider must not run')});
+  try {
+   const check=queries.find(q=>q.statement.includes('travel_transition_before_settlement_close'));
+   assert.equal(Boolean(check),enableSettlementClosure);
+   if(check) {
+    assert.match(check.statement,/pg_catalog\.sha256/);
+    assert.match(check.statement,/pg_catalog\.has_function_privilege/);
+    assert.match(check.statement,/not p\.proisstrict/);
+    assert.match(check.statement,/pg_catalog\.aclexplode/);
+    assert.match(check.statement,/has_function_privilege\(p\.proowner, p\.oid, 'EXECUTE'\)/);
+    assert.match(check.statement,/to_regprocedure\('customer_private\.travel_save/);
+    assert.match(check.statement,/save\.proowner=p\.proowner and save\.prosecdef/);
+    assert.equal(check.params.filter(p=>typeof p==='string'&&/^[0-9a-f]{64}$/.test(p)).length,2);
+   }
+   assert.equal(runtime.httpConfig.mailDelivery,false);
+  } finally {await runtime.close();}
+ }
+});
+
+test('an enabled development ledger exposes readiness and completes a synthetic owner settlement',async()=>{
+ const store=createLocalAuthStore(),provider=createLocalAuthProvider();
+ const repos=createLocalTravelRepositories({assertActor:actor=>store.assertActor(actor)});
+ const runtime=createPreparedRuntime(readLiveConfig({...env(),CUSTOMER_LIVE_MAIL_APPROVED:'true'}),{authStore:store,
+  authProvider:provider,repositories:repos,dispose:async()=>{store.close();provider.close();}},
+  {settlementClosureEnabled:true,mailDeliveryApproved:true,mailRecipient:'owner@example.invalid',mailPermit:{consume(){}}});
+ try {
+  const challenge=await runtime.authService.requestCode('owner@example.invalid','a'.repeat(64));
+  const login=await runtime.authService.verifyCode(challenge.challengeToken,'123456');
+  const {actor}=await runtime.authService.authenticate(login.sessionToken);
+  const {value:{trip},tripRevision}=await runtime.identityService.createTrip(actor,{name:'정산 연결 시험',destination:'부산',
+   startDate:'2026-11-08',endDate:'2026-11-09',timeZone:'Asia/Seoul',budgetKrw:100000,alias:'합성 소유자',settlementMode:'daily',dailyTime:'20:00'},randomUUID());
+  const final=await runtime.ledgerService.execute(actor,trip.id,{type:'settlement.finalize',date:null},tripRevision,randomUUID());
+  assert.equal((await runtime.ledgerService.get(actor,trip.id)).settlement.canClose,true);
+  await runtime.ledgerService.execute(actor,trip.id,{type:'settlement.close'},final.tripRevision,randomUUID());
+  assert.equal((await runtime.ledgerService.get(actor,trip.id)).settlement.closure?.snapshotId,final.value.targetId);
+ } finally {await runtime.close();}
+});
 test('prepared runtime blocks OTP delivery without approval and never swaps in local demo credentials',async()=>{
  const store=createLocalAuthStore(),provider=createLocalAuthProvider();let sent=0;
  const repos=createLocalTravelRepositories({assertActor:actor=>store.assertActor(actor)});
